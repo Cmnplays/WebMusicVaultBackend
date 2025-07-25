@@ -1,0 +1,32 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Backend code of webmusicvault",
+  "license": "ISC",
+  "author": "Aaditya Chaurasiya",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "node ./dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-async-handler": "^1.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.16.4",
+    "ts-node-dev": "^2.0.0",
+    "zod": "^4.0.10"
+  }
+}
