@@ -5,6 +5,7 @@ import Song from "../models/song.model";
 import { HttpStatus } from "../utils/HttpStatus";
 import ApiResponse from "../utils/ApiResponse";
 import ApiError from "../utils/ApiError";
+import { UploadApiResponse } from "cloudinary";
 
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -19,7 +20,14 @@ const uploadSongs = asyncHandler(
 
     const savedSongs = [];
     for (const file of files) {
-      const uploadResult = await uploadSong(file.buffer);
+      const existingSong = await Song.findOne({ title: file.originalname });
+      if (existingSong) {
+        throw new ApiError(
+          HttpStatus.Conflict,
+          `Song with title "${file.originalname}" already exists.`
+        );
+      }
+      const uploadResult: UploadApiResponse = await uploadSong(file.buffer);
 
       const durationInSeconds = uploadResult.duration || 0;
 
