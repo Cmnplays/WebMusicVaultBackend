@@ -3,20 +3,16 @@ import multer from "multer";
 const songRouter = Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
-import { filesSchema } from "../schemas/song.schema";
 import {
   uploadSongs,
   getAllSongs,
   getSongById,
+  deleteSongById,
 } from "../controllers/song.controller";
-import { validate } from "../middlewares/validate.middleware";
-songRouter.post(
-  "/songs/upload",
-  upload.array("songs", 3),
-  validate(filesSchema),
-  uploadSongs
-);
-songRouter.get("/songs", getAllSongs);
-songRouter.get("/songs/:id", getSongById);
+
+songRouter.post("/upload", upload.array("songs", 3), uploadSongs);
+songRouter.get("/", getAllSongs);
+songRouter.get("/:id", getSongById);
+songRouter.delete("/:id", deleteSongById);
 
 export default songRouter;

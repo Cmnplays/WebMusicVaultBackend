@@ -1,9 +1,11 @@
 import { v2 as cloudinary } from "cloudinary";
 import { UploadApiResponse } from "cloudinary";
+import { env } from "../config/env";
+
 cloudinary.config({
-  cloud_name: "dqh9frccg",
-  api_key: "754461921225799",
-  api_secret: "JmdjNaZV2UpL8eDHXoGaAaiYkoM",
+  cloud_name: env.CLOUDINARY_CLOUD_NAME,
+  api_key: env.CLOUDINARY_API_KEY,
+  api_secret: env.CLOUDINARY_API_SECRET,
   secure: true,
 });
 

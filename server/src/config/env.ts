@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   PORT: z.coerce.number(),
-  MONGODB_URI: z.url(),
+  MONGODB_URI: z.string().url(),
   NODE_ENV: z.enum(["development", "production"]),
   ACCESS_TOKEN_SECRET: z.string().min(1, "Access token secret is required"),
   REFRESH_TOKEN_SECRET: z.string().min(1, "Refresh token secret is required"),
@@ -20,6 +20,10 @@ const envSchema = z.object({
       /^\d+[smhd]$/,
       "Must be a valid time string (e.g., '15m', '1h', '7d')"
     ),
+
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, "Cloud name is required"),
+  CLOUDINARY_API_KEY: z.string().min(1, "Cloudinary API key is required"),
+  CLOUDINARY_API_SECRET: z.string().min(1, "Cloudinary API secret is required"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

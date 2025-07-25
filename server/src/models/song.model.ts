@@ -5,7 +5,7 @@ interface songT extends Document {
   artist: string;
   publicId: string;
   fileUrl: string;
-  owner: Schema.Types.ObjectId;
+  owner?: Schema.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,7 +20,7 @@ const songSchema = new Schema<songT>(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
   },
   {

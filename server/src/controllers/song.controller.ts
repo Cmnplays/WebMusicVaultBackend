@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response } from "express";
-import { uploadSong } from "../config/cloudinary";
+import { uploadSong, deleteSong } from "../config/cloudinary";
 import Song from "../models/song.model";
 import { HttpStatus } from "../utils/HttpStatus";
 import ApiResponse from "../utils/ApiResponse";
@@ -11,18 +11,21 @@ const uploadSongs = asyncHandler(
     const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0) {
-      res
-        .status(HttpStatus.BadRequest)
-        .json(new ApiError(HttpStatus.BadRequest, "No files uploaded"));
-      return;
+      throw new ApiError(
+        HttpStatus.BadRequest,
+        "No files uploaded. Please upload at least one song."
+      );
     }
 
     const savedSongs = [];
     for (const file of files) {
       const uploadResult = await uploadSong(file.buffer);
+
+      const durationInSeconds = uploadResult.duration || 0;
+
       const song = await Song.create({
         title: file.originalname,
-        duration: file.size,
+        duration: durationInSeconds,
         publicId: uploadResult.public_id,
         fileUrl: uploadResult.secure_url,
       });
@@ -38,7 +41,6 @@ const uploadSongs = asyncHandler(
           savedSongs
         )
       );
-    return;
   }
 );
 
@@ -54,10 +56,7 @@ const getAllSongs = asyncHandler(
       .limit(limit);
 
     if (!songs || songs.length === 0) {
-      res
-        .status(HttpStatus.NotFound)
-        .json(new ApiError(HttpStatus.NotFound, "No songs found"));
-      return;
+      throw new ApiResponse(HttpStatus.NotFound, "No songs found", null);
     }
 
     res
@@ -70,15 +69,32 @@ const getSongById = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const song = await Song.findById(req.params.id);
     if (!song) {
-      res
-        .status(HttpStatus.NotFound)
-        .json(new ApiError(HttpStatus.NotFound, "Song not found"));
+      throw new ApiError(HttpStatus.NotFound, "Song not found");
     }
-
     res
       .status(HttpStatus.OK)
       .json(new ApiResponse(HttpStatus.OK, "Song sent successfully", song));
   }
 );
 
-export { uploadSongs, getAllSongs, getSongById };
+const deleteSongById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const song = await Song.findByIdAndDelete(req.params.id);
+    if (!song) {
+      throw new ApiError(HttpStatus.NotFound, "Song not found");
+    }
+
+    await deleteSong(song!.publicId);
+    if (!song) {
+      res
+        .status(HttpStatus.NotFound)
+        .json(new ApiError(HttpStatus.NotFound, "Song not found"));
+      return;
+    }
+    res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, `song deleted successfully`, null));
+  }
+);
+
+export { uploadSongs, getAllSongs, getSongById, deleteSongById };
