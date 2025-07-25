@@ -12,10 +12,6 @@ const errorMiddleware = (err, req, res, next) => {
         message = "Validation Error";
         responseErrors = Object.values(err.errors).map((error) => error.message);
     }
-    else if (err instanceof mongoose_1.Error.CastError) {
-        status = 400;
-        message = "Invalid ID Format";
-    }
     else if (err instanceof zod_1.ZodError) {
         status = 400;
         message = "Validation Error";

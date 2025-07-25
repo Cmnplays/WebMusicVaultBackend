@@ -10,7 +10,7 @@ const songSchema = new mongoose_1.Schema({
     owner: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        required: false,
     },
 }, {
     timestamps: true,

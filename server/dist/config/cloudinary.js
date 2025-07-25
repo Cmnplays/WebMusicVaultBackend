@@ -11,10 +11,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteSong = exports.uploadSong = void 0;
 const cloudinary_1 = require("cloudinary");
+const env_1 = require("../config/env");
 cloudinary_1.v2.config({
-    cloud_name: "dqh9frccg",
-    api_key: "754461921225799",
-    api_secret: "JmdjNaZV2UpL8eDHXoGaAaiYkoM",
+    cloud_name: env_1.env.CLOUDINARY_CLOUD_NAME,
+    api_key: env_1.env.CLOUDINARY_API_KEY,
+    api_secret: env_1.env.CLOUDINARY_API_SECRET,
     secure: true,
 });
 const uploadSong = (buffer) => __awaiter(void 0, void 0, void 0, function* () {
