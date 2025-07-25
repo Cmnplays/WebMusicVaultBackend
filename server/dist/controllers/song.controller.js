@@ -26,6 +26,10 @@ const uploadSongs = (0, express_async_handler_1.default)((req, res) => __awaiter
     }
     const savedSongs = [];
     for (const file of files) {
+        const existingSong = yield song_model_1.default.findOne({ title: file.originalname });
+        if (existingSong) {
+            throw new ApiError_1.default(HttpStatus_1.HttpStatus.Conflict, `Song with title "${file.originalname}" already exists.`);
+        }
         const uploadResult = yield (0, cloudinary_1.uploadSong)(file.buffer);
         const durationInSeconds = uploadResult.duration || 0;
         const song = yield song_model_1.default.create({
