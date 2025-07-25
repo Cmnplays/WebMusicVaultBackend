@@ -17,13 +17,12 @@ const express_async_handler_1 = __importDefault(require("express-async-handler")
 const ApiResponse_1 = __importDefault(require("../utils/ApiResponse"));
 const HttpStatus_1 = require("../utils/HttpStatus");
 const user_model_1 = __importDefault(require("../models/user.model"));
-const user_schema_1 = require("../schemas/user.schema");
 const ApiError_1 = __importDefault(require("../utils/ApiError"));
 const register = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!req.body) {
         throw new ApiError_1.default(HttpStatus_1.HttpStatus.BadRequest, "Request body is required");
     }
-    const { username, email, password } = user_schema_1.registerSchema.parse(req.body);
+    const { username, email, password } = req.body;
     const existingUser = yield user_model_1.default.findOne({
         $or: [{ username: username }, { email: email }],
     });
@@ -45,13 +44,14 @@ const register = (0, express_async_handler_1.default)((req, res) => __awaiter(vo
         .cookie("refreshToken", refreshToken, options)
         .status(HttpStatus_1.HttpStatus.Created)
         .json(new ApiResponse_1.default(HttpStatus_1.HttpStatus.Created, "User registered successfully", user));
+    return;
 }));
 exports.register = register;
 const login = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!req.body) {
         throw new ApiError_1.default(HttpStatus_1.HttpStatus.BadRequest, "Request body is required");
     }
-    const { identifier, password } = user_schema_1.loginSchema.parse(req.body);
+    const { identifier, password } = req.body;
     const user = yield user_model_1.default.findOne({
         $or: [{ email: identifier }, { username: identifier }],
     }).select("+password");
@@ -79,9 +79,10 @@ const login = (0, express_async_handler_1.default)((req, res) => __awaiter(void 
         .cookie("refreshToken", refreshToken, options)
         .status(HttpStatus_1.HttpStatus.OK)
         .json(new ApiResponse_1.default(HttpStatus_1.HttpStatus.OK, "User logged in successfully", userResponse));
+    return;
 }));
 exports.login = login;
-const logout = (req, res) => {
+const logout = (_, res) => {
     const options = {
         secure: true,
         httpOnly: true,
@@ -91,5 +92,6 @@ const logout = (req, res) => {
         .clearCookie("refreshToken", options)
         .status(HttpStatus_1.HttpStatus.OK)
         .json(new ApiResponse_1.default(HttpStatus_1.HttpStatus.OK, "User logged out successfully", null));
+    return;
 };
 exports.logout = logout;
