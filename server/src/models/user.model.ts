@@ -2,6 +2,8 @@ import { Schema, model, Document } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
+import { HttpStatus } from "../utils/HttpStatus";
+import ApiError from "../utils/ApiError";
 
 type JWTExpiryString = `${number}${"s" | "m" | "h" | "d"}`;
 
@@ -65,6 +67,12 @@ userSchema.methods.generateAuthTokens = function (): {
   const refreshToken = jwt.sign({ id: this._id }, env.REFRESH_TOKEN_SECRET, {
     expiresIn: assertValidJWTExpiry(env.REFRESH_TOKEN_EXPIRY),
   });
+  if (!refreshToken || !accessToken) {
+    throw new ApiError(
+      HttpStatus.InternalServerError,
+      "Failed to generate authentication tokens"
+    );
+  }
   return { accessToken, refreshToken };
 };
 

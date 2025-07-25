@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { env } from "../config/env";
 import { Error as MongooseError } from "mongoose";
+import { ZodError } from "zod";
 
 interface CustomError extends Error {
   status?: number;
-  errors?: string[];
+  errors?: (string | { field: string; message: string })[];
   code?: number;
 }
 
@@ -16,19 +17,24 @@ const errorMiddleware = (
 ) => {
   let status = err.status || 500;
   let message = err.message || "BACKEND ERROR";
-  let responseErrors: string[] = err.errors || [];
+  let responseErrors: (string | { field: string; message: string })[] =
+    err.errors || [];
 
-  // Handle Mongoose Validation Errors
   if (err instanceof MongooseError.ValidationError) {
     status = 400;
     message = "Validation Error";
     responseErrors = Object.values(err.errors).map((error) => error.message);
-  }
-
-  // Handle Mongoose CastError (Invalid ID)
-  if (err instanceof MongooseError.CastError) {
+  } else if (err instanceof MongooseError.CastError) {
     status = 400;
     message = "Invalid ID Format";
+  } else if (err instanceof ZodError) {
+    status = 400;
+    message = "Validation Error";
+
+    responseErrors = err.issues.map((e) => ({
+      field: e.path.join("."),
+      message: e.message,
+    }));
   }
 
   return res.status(status).json({

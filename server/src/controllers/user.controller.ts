@@ -7,26 +7,24 @@ import { registerSchema, loginSchema } from "../schemas/user.schema";
 import ApiError from "../utils/ApiError";
 
 const register = asyncHandler(async (req: Request, res: Response) => {
-  const data = registerSchema.parse(req.body);
+  if (!req.body) {
+    throw new ApiError(HttpStatus.BadRequest, "Request body is required");
+  }
+  const { username, email, password } = registerSchema.parse(req.body);
   const existingUser = await User.findOne({
-    $or: [{ username: data.username }, { email: data.email }],
+    $or: [{ username: username }, { email: email }],
   });
   if (existingUser) {
     throw new ApiError(HttpStatus.Conflict, "User already exists");
   }
   const user = await User.create({
-    username: data.username,
-    email: data.email,
-    password: data.password,
+    username: username,
+    email: email,
+    password: password,
   });
 
   const { refreshToken, accessToken } = user.generateAuthTokens();
-  if (!user) {
-    throw new ApiError(
-      HttpStatus.InternalServerError,
-      "User registration failed"
-    );
-  }
+
   const options = {
     secure: true,
     httpOnly: true,
@@ -41,25 +39,56 @@ const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const login = asyncHandler(async (req: Request, res: Response) => {
-  const data = loginSchema.parse(req.body);
+  if (!req.body) {
+    throw new ApiError(HttpStatus.BadRequest, "Request body is required");
+  }
+  const { identifier, password } = loginSchema.parse(req.body);
   const user = await User.findOne({
-    $or: [{ email: data.identifier }, { username: data.identifier }],
-  });
+    $or: [{ email: identifier }, { username: identifier }],
+  }).select("+password");
   if (!user) {
     throw new ApiError(HttpStatus.Unauthorized, "Invalid credentials");
   }
-  const isPasswordValid = await user.isPasswordCorrect(data.password);
+  const isPasswordValid = await user.isPasswordCorrect(password);
   if (!isPasswordValid) {
     throw new ApiError(HttpStatus.Unauthorized, "Invalid credentials");
   }
+
+  const { refreshToken, accessToken } = user.generateAuthTokens();
+  const userResponse = {
+    _id: user._id,
+    username: user.username,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
   const options = {
     secure: true,
     httpOnly: true,
   };
   res
-    .cookie("accessToken", options)
-    .cookie("refreshToken", options)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .status(HttpStatus.OK)
-    .json(new ApiResponse(HttpStatus.OK, "User logged in successfully", user));
+    .json(
+      new ApiResponse(
+        HttpStatus.OK,
+        "User logged in successfully",
+        userResponse
+      )
+    );
 });
-export { register, login };
+
+const logout = (req: Request, res: Response) => {
+  const options = {
+    secure: true,
+    httpOnly: true,
+  };
+  res
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .status(HttpStatus.OK)
+    .json(new ApiResponse(HttpStatus.OK, "User logged out successfully", null));
+};
+export { register, login, logout };
