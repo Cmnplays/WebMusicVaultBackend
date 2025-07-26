@@ -59,7 +59,7 @@ const getAllSongs = asyncHandler(
     const skip = (page - 1) * limit;
 
     const songs = await Song.find()
-      .select("title duration")
+      .select("title duration fileUrl")
       .skip(skip)
       .limit(limit);
 
