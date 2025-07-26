@@ -19,6 +19,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^24.1.0",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
@@ -34,7 +35,6 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.4",
     "multer": "^2.0.2",
-    "ts-node-dev": "^2.0.0",
     "zod": "^4.0.10"
   }
 }
