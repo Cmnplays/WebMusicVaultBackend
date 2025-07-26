@@ -10,11 +10,6 @@ export interface Song {
   fileUrl?: string; // full URL to audio file
   duration: number;
 }
-export interface SongUploadResponse {
-  status: number;
-  message: string;
-  data: Song[];
-}
 
 const fetchAllSongs = async (
   limit: number = 10,
@@ -37,4 +32,6 @@ const fetchAllSongs = async (
   }
 };
 
-export { fetchAllSongs };
+const uploadSongs = async (): Promise<void> => {};
+
+export { fetchAllSongs, uploadSongs };

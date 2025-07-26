@@ -1,163 +1,124 @@
-import React, { useState } from "react";
 import axios from "axios";
-
-const MAX_FILES = 3;
+import React, { useRef, useState } from "react";
 
 const UploadPage: React.FC = () => {
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles) return;
-
-    if (selectedFiles.length > MAX_FILES) {
-      alert(`You can upload a maximum of ${MAX_FILES} files.`);
-      // Reset input to prevent selection of too many files
-      e.target.value = "";
-      setFiles(null);
-      return;
-    }
-
-    setFiles(selectedFiles);
-    setMessage(null);
-    setProgress(0);
+  const handleFileClick = () => {
+    inputRef.current?.click();
   };
 
-  const handleUpload = async () => {
-    if (!files || files.length === 0) {
-      setMessage("Please select audio files to upload.");
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
+    setSuccessMsg(null);
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+
+    if (files.length === 0) {
+      setError("Please select at least one file.");
       return;
     }
 
     const formData = new FormData();
-    for (const file of Array.from(files)) {
-      formData.append("songs", file);
-    }
+    files.forEach((file) => formData.append("songs", file));
 
+    setIsUploading(true);
     try {
-      setUploading(true);
-      setMessage(null);
-
-      await axios.post("/api/v1/songs/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (event) => {
-          const percent = Math.round((event.loaded * 100) / (event.total ?? 1));
-          setProgress(percent);
-        },
-      });
-
-      setMessage("🎉 Upload successful!");
-      setFiles(null);
-    } catch (error: unknown) {
-      const axiosError = error as {
-        response?: { data?: { message?: string } };
-      };
-      setMessage(
-        axiosError.response?.data?.message || "❌ Upload failed. Try again."
+      const response = await axios.post(
+        "http://localhost:3000/api/v1/song/upload",
+        formData
       );
-    } finally {
-      setUploading(false);
-      setProgress(0);
+      setSuccessMsg("Upload successful!");
+      setFiles([]);
+      if (inputRef.current) inputRef.current.value = "";
+      console.log("Server response:", response.data);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response) {
+        if (err.response.status === 409) {
+          setError("Upload failed: File already exists.");
+        } else {
+          setError(
+            `Upload failed: ${err.response.data?.message || "Unknown error"}`
+          );
+        }
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+      console.error("Upload error:", err);
     }
   };
 
   return (
-    <main className="max-w-md mx-auto p-4 min-h-screen flex flex-col justify-center bg-white">
-      <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">
-        Upload Songs
-      </h2>
-
-      <label
-        htmlFor="file-upload"
-        className="block mb-5 cursor-pointer rounded-lg border-2 border-dashed border-blue-400 p-6 text-center hover:border-blue-600 transition-colors"
+    <div className="max-w-md mx-auto mt-8 p-4 border rounded-lg bg-white shadow-md">
+      <form
+        onSubmit={handleSubmit}
+        encType="multipart/form-data"
+        className="flex flex-col gap-4"
       >
-        <input
-          id="file-upload"
-          type="file"
-          multiple
-          accept="audio/*"
-          onChange={handleFileChange}
-          disabled={uploading}
-          className="hidden"
-        />
-        <svg
-          className="mx-auto mb-3 h-10 w-10 text-blue-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m-4-4l4-4 4 4"
-          />
-        </svg>
-        <span className="text-blue-600 font-medium text-sm">
-          Tap here to select up to {MAX_FILES} audio files
-        </span>
-      </label>
-
-      {files && files.length > 0 && (
-        <div className="mb-4 max-h-32 overflow-y-auto border border-gray-200 rounded p-3 bg-gray-50 text-gray-800 text-sm">
-          <strong className="block mb-1">
-            Selected files ({files.length}):
-          </strong>
-          <ul className="space-y-1">
-            {Array.from(files).map((file) => (
-              <li key={file.name} className="truncate" title={file.name}>
-                {file.name} — {(file.size / 1024 / 1024).toFixed(2)} MB
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {uploading && (
-        <div className="mb-4">
-          <label className="block mb-1 text-gray-700 font-medium text-sm">
-            Uploading... {progress}%
-          </label>
-          <progress
-            value={progress}
-            max={100}
-            className="w-full h-3 rounded bg-blue-100 overflow-hidden"
-          />
-        </div>
-      )}
-
-      {message && (
         <div
-          className={`mb-4 p-3 rounded text-center text-sm ${
-            message.startsWith("❌")
-              ? "bg-red-100 text-red-700"
-              : "bg-green-100 text-green-700"
-          }`}
-          role="alert"
+          onClick={handleFileClick}
+          className="border-2 border-dashed border-gray-400 rounded-md p-6 cursor-pointer text-center text-gray-600 hover:border-purple-600 transition-colors"
         >
-          {message}
+          {files.length > 0 ? (
+            <div className="space-y-1">
+              <p className="font-semibold text-gray-800">Selected files:</p>
+              <ul className="text-sm text-gray-700 max-h-32 overflow-auto">
+                {files.map((file, idx) => (
+                  <li key={idx} className="truncate" title={file.name}>
+                    {file.name}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-gray-500">
+                Click to change files
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-lg font-semibold">
+                Click here to select files
+              </p>
+              <p className="text-xs text-gray-400">
+                (or drag and drop files here)
+              </p>
+            </>
+          )}
+          <input
+            type="file"
+            name="songs"
+            accept="audio/*"
+            multiple
+            className="hidden"
+            onChange={handleFilesChange}
+            ref={inputRef}
+          />
         </div>
-      )}
 
-      <button
-        onClick={handleUpload}
-        disabled={uploading || !files || files.length === 0}
-        className={`w-full py-3 rounded-lg font-semibold text-white transition-colors ${
-          uploading || !files || files.length === 0
-            ? "bg-blue-300 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-700"
-        }`}
-      >
-        {uploading ? "Uploading..." : "Upload"}
-      </button>
-    </main>
+        {error && <p className="text-red-600 text-sm font-medium">{error}</p>}
+        {successMsg && (
+          <p className="text-green-600 text-sm font-medium">{successMsg}</p>
+        )}
+
+        <button
+          type="submit"
+          className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isUploading}
+        >
+          {isUploading ? "Uploading..." : "Upload"}
+        </button>
+      </form>
+    </div>
   );
 };
 
