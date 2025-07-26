@@ -5,7 +5,6 @@ import gsap from "gsap";
 const links = [
   { name: "Musics", path: "/musics" },
   { name: "Upload", path: "/upload" },
-  { name: "Login", path: "/login" },
 ];
 
 export default function Navbar() {
