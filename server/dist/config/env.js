@@ -9,7 +9,7 @@ dotenv_1.default.config();
 const zod_1 = require("zod");
 const envSchema = zod_1.z.object({
     PORT: zod_1.z.coerce.number(),
-    MONGODB_URI: zod_1.z.string().url(),
+    MONGODB_URI: zod_1.z.url(),
     NODE_ENV: zod_1.z.enum(["development", "production"]),
     ACCESS_TOKEN_SECRET: zod_1.z.string().min(1, "Access token secret is required"),
     REFRESH_TOKEN_SECRET: zod_1.z.string().min(1, "Refresh token secret is required"),
@@ -22,6 +22,7 @@ const envSchema = zod_1.z.object({
     CLOUDINARY_CLOUD_NAME: zod_1.z.string().min(1, "Cloud name is required"),
     CLOUDINARY_API_KEY: zod_1.z.string().min(1, "Cloudinary API key is required"),
     CLOUDINARY_API_SECRET: zod_1.z.string().min(1, "Cloudinary API secret is required"),
+    FRONTEND_URL: zod_1.z.string(),
 });
 const parsedEnv = envSchema.safeParse(process.env);
 if (!parsedEnv.success) {

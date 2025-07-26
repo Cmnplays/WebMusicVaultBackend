@@ -50,7 +50,7 @@ const getAllSongs = (0, express_async_handler_1.default)((req, res) => __awaiter
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const songs = yield song_model_1.default.find()
-        .select("title duration")
+        .select("title duration fileUrl")
         .skip(skip)
         .limit(limit);
     if (!songs || songs.length === 0) {
