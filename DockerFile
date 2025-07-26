@@ -1,0 +1,30 @@
+# Stage 1: Build
+FROM node:20-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install all dependencies (including dev)
+COPY package*.json ./
+RUN npm install --include=dev
+
+# Copy rest of the code
+COPY . .
+
+# Build the project (compile TypeScript)
+RUN npm run build
+
+# Stage 2: Production
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install only production dependencies
+COPY package*.json ./
+RUN npm install --omit=dev
+
+# Copy built files from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Run the app
+CMD ["node", "./dist/server.js"]
