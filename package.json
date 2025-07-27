@@ -19,12 +19,12 @@
     "@types/node": "^24.1.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "bcryptjs": "^3.0.2",
+    "typescript": "^5.8.3",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
