@@ -7,7 +7,6 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "preinstall": "npm install -g typescript",
     "build": "npx tsc",
     "start": "node ./dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts"
