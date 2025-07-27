@@ -5,14 +5,8 @@ import userRouter from "./routes/user.route";
 import songRouter from "./routes/song.route";
 import cookieParser from "cookie-parser";
 import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
-import { env } from "./config/env";
 
 import cors from "cors";
-//*Normal middlewares
-app.use((req, res, next) => {
-  console.log(`[${req.method}] ${req.url}`);
-  next();
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

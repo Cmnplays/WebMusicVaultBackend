@@ -11,7 +11,6 @@ const song_route_1 = __importDefault(require("./routes/song.route"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const invalidRoute_middleware_1 = __importDefault(require("./middlewares/invalidRoute.middleware"));
 const cors_1 = __importDefault(require("cors"));
-//*Normal middlewares
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
