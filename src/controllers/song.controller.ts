@@ -61,7 +61,8 @@ const getAllSongs = asyncHandler(
     const songs = await Song.find()
       .select("title duration fileUrl")
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
     if (!songs || songs.length === 0) {
       throw new ApiResponse(HttpStatus.NotFound, "No songs found", null);
