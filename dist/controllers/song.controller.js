@@ -52,7 +52,8 @@ const getAllSongs = (0, express_async_handler_1.default)((req, res) => __awaiter
     const songs = yield song_model_1.default.find()
         .select("title duration fileUrl")
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .sort({ createdAt: -1 });
     if (!songs || songs.length === 0) {
         throw new ApiResponse_1.default(HttpStatus_1.HttpStatus.NotFound, "No songs found", null);
     }
