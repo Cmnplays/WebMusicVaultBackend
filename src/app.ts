@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
 
 import cors from "cors";
-app.use(cors());
+app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
