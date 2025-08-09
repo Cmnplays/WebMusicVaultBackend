@@ -20,7 +20,6 @@ export const uploadSong = async (
           console.error("Upload failed:", error);
           return reject(error);
         }
-        console.log("Upload successful:", result?.public_id);
         resolve(result!);
       }
     );
