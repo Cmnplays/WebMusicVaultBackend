@@ -59,7 +59,6 @@ const getAllSongs = asyncHandler(
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const sortByValue = req.query.sortOrder as string;
-    console.log(sortByValue);
     let sortBy: SortOrder;
     if (!sortByValue) {
       sortBy = -1; // descending
