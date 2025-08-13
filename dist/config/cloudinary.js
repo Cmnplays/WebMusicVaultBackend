@@ -25,7 +25,6 @@ const uploadSong = (buffer) => __awaiter(void 0, void 0, void 0, function* () {
                 console.error("Upload failed:", error);
                 return reject(error);
             }
-            console.log("Upload successful:", result === null || result === void 0 ? void 0 : result.public_id);
             resolve(result);
         });
         stream.end(buffer);

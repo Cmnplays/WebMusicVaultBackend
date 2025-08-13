@@ -17,7 +17,6 @@ const env_1 = require("../config/env");
 const connectDb = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield mongoose_1.default.connect(env_1.env.MONGODB_URI);
-        console.log("Successfully connected to database");
     }
     catch (error) {
         throw error;

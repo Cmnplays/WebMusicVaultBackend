@@ -18,9 +18,7 @@ const env_1 = require("./config/env");
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, config_1.default)();
-        app_1.default.listen(env_1.env.PORT, () => {
-            console.log("Server started successfully");
-        });
+        app_1.default.listen(env_1.env.PORT);
     }
     catch (error) {
         if (error instanceof Error) {

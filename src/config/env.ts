@@ -25,6 +25,7 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, "Cloudinary API key is required"),
   CLOUDINARY_API_SECRET: z.string().min(1, "Cloudinary API secret is required"),
   FRONTEND_URL: z.string(),
+  SONG_FOLDER_PATHS: z.string(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

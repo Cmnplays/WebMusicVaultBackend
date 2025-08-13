@@ -21,6 +21,7 @@ const ApiResponse_1 = __importDefault(require("../utils/ApiResponse"));
 const ApiError_1 = __importDefault(require("../utils/ApiError"));
 const uploadSongs = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const files = req.files;
+    let errors = [];
     if (!files || files.length === 0) {
         throw new ApiError_1.default(HttpStatus_1.HttpStatus.BadRequest, "No files uploaded. Please upload at least one song.");
     }
@@ -28,7 +29,8 @@ const uploadSongs = (0, express_async_handler_1.default)((req, res) => __awaiter
     for (const file of files) {
         const existingSong = yield song_model_1.default.findOne({ title: file.originalname });
         if (existingSong) {
-            throw new ApiError_1.default(HttpStatus_1.HttpStatus.Conflict, `Song with title "${file.originalname}" already exists.`);
+            errors.push(`Song named ${existingSong.title} already exists`);
+            continue;
         }
         const uploadResult = yield (0, cloudinary_1.uploadSong)(file.buffer);
         const durationInSeconds = uploadResult.duration || 0;
@@ -40,20 +42,34 @@ const uploadSongs = (0, express_async_handler_1.default)((req, res) => __awaiter
         });
         savedSongs.push(song);
     }
+    const message = errors.length > 0
+        ? `${savedSongs.length} song(s) uploaded successfully. ${errors.length} already existed.`
+        : "Songs uploaded successfully";
     res
         .status(HttpStatus_1.HttpStatus.Created)
-        .json(new ApiResponse_1.default(HttpStatus_1.HttpStatus.Created, "Songs uploaded successfully", savedSongs));
+        .json(new ApiResponse_1.default(HttpStatus_1.HttpStatus.Created, message, savedSongs, errors.length > 0 ? errors : undefined));
 }));
 exports.uploadSongs = uploadSongs;
 const getAllSongs = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const sortByValue = req.query.sortOrder;
+    let sortBy;
+    if (!sortByValue) {
+        sortBy = -1; // descending
+    }
+    else if (sortByValue.toLowerCase() === "asc") {
+        sortBy = -1;
+    }
+    else {
+        sortBy = 1; // descending
+    }
     const songs = yield song_model_1.default.find()
         .select("title duration fileUrl")
         .skip(skip)
         .limit(limit)
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: sortBy });
     if (!songs || songs.length === 0) {
         throw new ApiResponse_1.default(HttpStatus_1.HttpStatus.NotFound, "No songs found", null);
     }

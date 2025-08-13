@@ -23,6 +23,7 @@ const envSchema = zod_1.z.object({
     CLOUDINARY_API_KEY: zod_1.z.string().min(1, "Cloudinary API key is required"),
     CLOUDINARY_API_SECRET: zod_1.z.string().min(1, "Cloudinary API secret is required"),
     FRONTEND_URL: zod_1.z.string(),
+    SONG_FOLDER_PATHS: zod_1.z.string(),
 });
 const parsedEnv = envSchema.safeParse(process.env);
 if (!parsedEnv.success) {
