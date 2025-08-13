@@ -1,8 +1,12 @@
 import { Request, Response } from "express";
-import ApiError from "../utils/ApiError";
+import ApiResponses from "../utils/ApiResponse";
 import { HttpStatus } from "../utils/HttpStatus";
 const invalidRouteMiddleware = (req: Request, res: Response) => {
-  throw new ApiError(HttpStatus.NotFound, "This route does not exist");
+  res
+    .status(HttpStatus.NotFound)
+    .send(
+      new ApiResponses(HttpStatus.NotFound, "This route doesn't exist", null)
+    );
 };
 
 export default invalidRouteMiddleware;
