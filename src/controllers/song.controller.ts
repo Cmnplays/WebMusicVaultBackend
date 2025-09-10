@@ -42,7 +42,7 @@ const uploadSongs = asyncHandler(
       errors.length > 0
         ? `${savedSongs.length} song(s) uploaded successfully. ${errors.length} already existed.`
         : "Songs uploaded successfully";
-
+    console.log(errors);
     res
       .status(HttpStatus.Created)
       .json(
@@ -119,4 +119,21 @@ const deleteSongById = asyncHandler(
   }
 );
 
-export { uploadSongs, getAllSongs, getSongById, deleteSongById };
+const searchSong = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const query = req.query.searchQuery as string;
+    const searchedSongs = await Song.find({
+      title: { $regex: query, $options: "i" },
+    }).limit(10);
+    res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse(
+          HttpStatus.OK,
+          "Song(s) sent successfully",
+          searchedSongs
+        )
+      );
+  }
+);
+export { uploadSongs, getAllSongs, getSongById, deleteSongById, searchSong };
