@@ -1,6 +1,0 @@
-1.Add script for watching file changes in songs folder and uploading it to the server.
-2.to filter and see all the logic , and if imporvable imporve it.
-3.to make it better , in some way more better for less lagging and more working
-4.to write readme for how to setup this app for your own friends
-
-//**must make separate branch for separate features so the code doesnt gets mixed up
