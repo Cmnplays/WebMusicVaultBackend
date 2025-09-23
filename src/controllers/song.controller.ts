@@ -11,7 +11,6 @@ import type { SortOrder } from "mongoose";
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const files = req.files as Express.Multer.File[];
-    let errors: string[] = [];
     if (!files || files.length === 0) {
       throw new ApiError(
         HttpStatus.BadRequest,
@@ -20,10 +19,11 @@ const uploadSongs = asyncHandler(
     }
 
     const savedSongs = [];
+    const alreadyExistingSongs = [];
     for (const file of files) {
       const existingSong = await Song.findOne({ title: file.originalname });
       if (existingSong) {
-        errors.push(`Song named ${existingSong.title} already exists`);
+        alreadyExistingSongs.push(existingSong.title);
         continue;
       }
       const uploadResult: UploadApiResponse = await uploadSong(file.buffer);
@@ -39,10 +39,9 @@ const uploadSongs = asyncHandler(
       savedSongs.push(song);
     }
     const message =
-      errors.length > 0
-        ? `${savedSongs.length} song(s) uploaded successfully. ${errors.length} already existed.`
-        : "Songs uploaded successfully";
-    console.log(errors);
+      alreadyExistingSongs.length > 0
+        ? `${savedSongs.length} song(s) uploaded successfully. ${alreadyExistingSongs.length} already existed.`
+        : `${savedSongs.length} song(s) uploaded successfully`;
     res
       .status(HttpStatus.Created)
       .json(
@@ -50,7 +49,7 @@ const uploadSongs = asyncHandler(
           HttpStatus.Created,
           message,
           savedSongs,
-          errors.length > 0 ? errors : undefined
+          alreadyExistingSongs
         )
       );
   }
