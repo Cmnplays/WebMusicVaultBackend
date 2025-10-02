@@ -1,7 +1,7 @@
 import app from "./app";
 import connectDb from "./config/config";
 import { env } from "./config/env";
-import directUploader from "./scripts/directUploadFromSystem";
+// import directUploader from "./scripts/directUploadFromSystem";
 
 const startServer = async () => {
   try {

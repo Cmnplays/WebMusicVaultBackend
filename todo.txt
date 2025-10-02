@@ -1,1 +1,2 @@
 1.I am not sure but i think currently i am not checking if coming file is mp3 or not , so i do have to do that
+2.need to compare cloudinary files inside song folder and the public ids of mongodb docs of music and need to delete the ones in cloudinary which dont have corresponding mongodb document.
