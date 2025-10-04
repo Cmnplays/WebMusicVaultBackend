@@ -7,8 +7,23 @@ import cookieParser from "cookie-parser";
 import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
 import indexRouter from "./routes/index.route";
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://www.webmusicvault.vercel.app",
+];
 import cors from "cors";
-app.use(cors({ origin: "*", credentials: true }));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by cors policy"));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
