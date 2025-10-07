@@ -11,7 +11,6 @@ const startServer = async () => {
     //checkDbData();
     //checkDuplicateFiles();
     //directUploader("E:/Personal Folders/Music/musics/hindi"); //-->give path of folder in which your songs are present
-    console.log("Script ran successfully");
   } catch (error) {
     if (error instanceof Error) {
       console.log("Error while starting the server: ", error.message, error);
