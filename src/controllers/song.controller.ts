@@ -7,7 +7,6 @@ import ApiResponse from "../utils/ApiResponse";
 import ApiError from "../utils/ApiError";
 import { UploadApiResponse } from "cloudinary";
 import type { SortOrder } from "mongoose";
-import mongoose from "mongoose";
 
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
