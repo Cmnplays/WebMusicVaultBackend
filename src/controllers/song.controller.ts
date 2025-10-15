@@ -57,32 +57,43 @@ const uploadSongs = asyncHandler(
 
 const getAllSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
     const sortByValue = req.query.sortOrder as string;
+    const cursor = req.query.cursor as string | undefined;
     let sortBy: SortOrder;
     if (!sortByValue) {
       sortBy = -1; // descending
     } else if (sortByValue.toLowerCase() === "asc") {
-      sortBy = -1;
+      sortBy = -1; //descending
     } else {
-      sortBy = 1; // descending
+      sortBy = 1; //ascending
+    }
+    const query: any = {};
+    if (cursor) {
+      query._id = sortBy === 1 ? { $gt: cursor } : { $lt: cursor };
     }
 
-    const songs = await Song.find()
+    const songs = await Song.find(query)
       .select("title duration fileUrl")
-      .skip(skip)
-      .limit(limit)
+      .limit(limit + 1)
       .sort({ createdAt: sortBy });
+    const hasMoreSongs = songs.length > limit;
+    if (hasMoreSongs) {
+      songs.pop();
+    }
+    const nextCursor = songs[songs.length - 1]._id;
 
     if (!songs || songs.length === 0) {
       throw new ApiResponse(HttpStatus.NotFound, "No songs found", null);
     }
 
-    res
-      .status(HttpStatus.OK)
-      .json(new ApiResponse(HttpStatus.OK, "Songs sent successfully", songs));
+    res.status(HttpStatus.OK).json(
+      new ApiResponse(HttpStatus.OK, "Songs sent successfully", {
+        songs,
+        nextCursor,
+        hasMoreSongs,
+      })
+    );
   }
 );
 
