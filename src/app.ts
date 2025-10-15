@@ -9,6 +9,7 @@ import indexRouter from "./routes/index.route";
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://webmusicvault.vercel.app",
 ];
 import cors from "cors";

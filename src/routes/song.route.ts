@@ -9,10 +9,12 @@ import {
   getSongById,
   deleteSongById,
   searchSong,
+  getRandomSong,
 } from "../controllers/song.controller";
 
 songRouter.post("/upload", upload.array("songs", 3), uploadSongs);
 songRouter.get("/", getAllSongs);
+songRouter.get("/rand", getRandomSong);
 songRouter.get("/search", searchSong);
 songRouter.delete("/:id", deleteSongById);
 songRouter.get("/:id", getSongById);

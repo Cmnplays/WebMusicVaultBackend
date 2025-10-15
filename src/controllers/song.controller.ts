@@ -7,6 +7,7 @@ import ApiResponse from "../utils/ApiResponse";
 import ApiError from "../utils/ApiError";
 import { UploadApiResponse } from "cloudinary";
 import type { SortOrder } from "mongoose";
+import mongoose from "mongoose";
 
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -124,11 +125,13 @@ const searchSong = asyncHandler(
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const query = req.query.searchQuery as string;
+
     const searchedSongs = await Song.find({
       title: { $regex: query, $options: "i" },
     })
       .skip(skip)
       .limit(limit);
+
     res
       .status(HttpStatus.OK)
       .json(
@@ -140,5 +143,24 @@ const searchSong = asyncHandler(
       );
   }
 );
+const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
+  const randomSongArr = await Song.aggregate([{ $sample: { size: 1 } }]);
 
-export { uploadSongs, getAllSongs, getSongById, deleteSongById, searchSong };
+  res
+    .status(HttpStatus.OK)
+    .send(
+      new ApiResponse(
+        HttpStatus.OK,
+        "Successfully sent a random song",
+        randomSongArr[0]
+      )
+    );
+});
+export {
+  uploadSongs,
+  getAllSongs,
+  getSongById,
+  deleteSongById,
+  searchSong,
+  getRandomSong,
+};
