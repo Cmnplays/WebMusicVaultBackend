@@ -7,6 +7,7 @@ import ApiResponse from "../utils/ApiResponse";
 import ApiError from "../utils/ApiError";
 import { UploadApiResponse } from "cloudinary";
 import type { SortOrder } from "mongoose";
+import mongoose from "mongoose";
 
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -59,7 +60,7 @@ const getAllSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const limit = Number(req.query.limit) || 10;
     const sortByValue = req.query.sortOrder as string;
-    const cursor = req.query.cursor as string | undefined;
+    let cursor = req.query.cursor as string | undefined;
     let sortBy: SortOrder;
     if (!sortByValue) {
       sortBy = -1; // descending
@@ -69,6 +70,9 @@ const getAllSongs = asyncHandler(
       sortBy = 1; //ascending
     }
     const query: any = {};
+    if (cursor && !mongoose.Types.ObjectId.isValid(cursor)) {
+      cursor = undefined;
+    }
     if (cursor) {
       query._id = sortBy === 1 ? { $gt: cursor } : { $lt: cursor };
     }
@@ -81,7 +85,7 @@ const getAllSongs = asyncHandler(
     if (hasMoreSongs) {
       songs.pop();
     }
-    const nextCursor = songs[songs.length - 1]._id;
+    const nextCursor = songs.length ? songs[songs.length - 1]._id : undefined;
 
     if (!songs || songs.length === 0) {
       throw new ApiResponse(HttpStatus.NotFound, "No songs found", null);
@@ -131,26 +135,34 @@ const deleteSongById = asyncHandler(
 
 const searchSong = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const query = req.query.searchQuery as string;
-
+    let cursor = req.query.cursor as string | undefined;
+    const searchQuery = req.query.searchQuery as string;
+    let query: any = {};
+    if (cursor && !mongoose.Types.ObjectId.isValid(cursor)) {
+      cursor = undefined;
+    }
+    if (cursor) {
+      query = { $gt: cursor };
+    }
     const searchedSongs = await Song.find({
-      title: { $regex: query, $options: "i" },
-    })
-      .skip(skip)
-      .limit(limit);
-
-    res
-      .status(HttpStatus.OK)
-      .json(
-        new ApiResponse(
-          HttpStatus.OK,
-          "Song(s) sent successfully",
-          searchedSongs
-        )
-      );
+      title: { $regex: searchQuery, $options: "i" },
+      ...(cursor && { _id: query }),
+    }).limit(limit + 1);
+    const hasMoreSongs = searchedSongs.length > limit;
+    if (hasMoreSongs) {
+      searchedSongs.pop();
+    }
+    const nextCursor = searchedSongs.length
+      ? searchedSongs[searchedSongs.length - 1]._id
+      : undefined;
+    res.status(HttpStatus.OK).json(
+      new ApiResponse(HttpStatus.OK, "Song(s) sent successfully", {
+        searchedSongs,
+        nextCursor,
+        hasMoreSongs,
+      })
+    );
   }
 );
 const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
