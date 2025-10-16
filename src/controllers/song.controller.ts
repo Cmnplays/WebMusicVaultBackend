@@ -158,7 +158,7 @@ const searchSong = asyncHandler(
       : undefined;
     res.status(HttpStatus.OK).json(
       new ApiResponse(HttpStatus.OK, "Song(s) sent successfully", {
-        searchedSongs,
+        songs: searchedSongs,
         nextCursor,
         hasMoreSongs,
       })
