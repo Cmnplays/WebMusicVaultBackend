@@ -46,4 +46,7 @@ export const deleteSong = async (publicId: string) => {
   });
 };
 
+export const allSongs = async () => {
+  //will write it later
+};
 export default cloudinary;

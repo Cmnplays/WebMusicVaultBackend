@@ -6,6 +6,7 @@ import songRouter from "./routes/song.route";
 import cookieParser from "cookie-parser";
 import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
 import indexRouter from "./routes/index.route";
+import consoleRouter from "./miscellaneous/console.routes"; // ✅ ADDED
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -32,6 +33,7 @@ app.use(cookieParser());
 app.use("/api/v1", indexRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/song", songRouter);
+app.use("/api/v1/console", consoleRouter); // ✅ ADDED
 
 //*Global error handler
 app.use(errorMiddleware);
