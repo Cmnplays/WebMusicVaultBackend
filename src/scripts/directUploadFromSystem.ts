@@ -5,20 +5,20 @@ import { readdir, readFile, stat } from "fs/promises";
 import * as path from "path";
 
 const directUploader = async (songFolderPath: string) => {
-  const folderPath = path.isAbsolute(songFolderPath)
-    ? songFolderPath
-    : path.resolve(songFolderPath);
-  const files = await readdir(folderPath);
-
-  if (!files || files.length === 0) {
-    console.log("No files in this directory");
-    return;
-  }
-
-  const savedSongs: any = [];
-  const alreadyExistingSongs: any = [];
-  console.log("Number of files is ", files.length);
   try {
+    const folderPath = path.isAbsolute(songFolderPath)
+      ? songFolderPath
+      : path.resolve(songFolderPath);
+    const files = await readdir(folderPath);
+
+    if (!files || files.length === 0) {
+      console.log("No files in this directory");
+      return;
+    }
+
+    const savedSongs: any = [];
+    const alreadyExistingSongs: any = [];
+    console.log("Number of files is ", files.length);
     for (const fileName of files) {
       const fullPath = path.join(folderPath, fileName);
       const fileStat = await stat(fullPath);

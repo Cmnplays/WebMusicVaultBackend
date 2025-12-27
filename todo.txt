@@ -1,2 +1,5 @@
 1.I am not sure but i think currently i am not checking if coming file is mp3 or not , so i do have to do that
 2.need to compare cloudinary files inside song folder and the public ids of mongodb docs of music and need to delete the ones in cloudinary which dont have corresponding mongodb document.
+3.to add rate limiting techniques.(limit no. of uploads from a same ip for 1 day like 20,30 or maybe 50 or even maybe 10)
+
+add tags in backend, genre language and one tag field for tags except genre and language
