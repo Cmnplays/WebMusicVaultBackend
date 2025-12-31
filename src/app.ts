@@ -1,19 +1,22 @@
 import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+
 import errorMiddleware from "./middlewares/error.middleware";
-const app = express();
+import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
+
 import userRouter from "./routes/user.route";
 import songRouter from "./routes/song.route";
-import cookieParser from "cookie-parser";
-import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
 import indexRouter from "./routes/index.route";
-import consoleRouter from "./miscellaneous/console.routes"; // ✅ ADDED
+import consoleRouter from "./miscellaneous/console.routes";
+
+const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://webmusicvault.vercel.app",
 ];
-import cors from "cors";
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -33,7 +36,7 @@ app.use(cookieParser());
 app.use("/api/v1", indexRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/song", songRouter);
-app.use("/api/v1/console", consoleRouter); // ✅ ADDED
+app.use("/api/v1/console", consoleRouter);
 
 //*Global error handler
 app.use(errorMiddleware);

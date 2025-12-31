@@ -6,6 +6,7 @@ export enum HttpStatus {
 
   // Client errors
   BadRequest = 400,
+  ValidationError = 400,
   Unauthorized = 401,
   Forbidden = 403,
   NotFound = 404,

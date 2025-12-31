@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import ApiResponses from "../utils/ApiResponse";
 import { HttpStatus } from "../utils/HttpStatus";
-const invalidRouteMiddleware = (req: Request, res: Response) => {
+const invalidRouteMiddleware = (_req: Request, res: Response): void => {
   res
     .status(HttpStatus.NotFound)
     .send(

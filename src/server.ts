@@ -1,21 +1,22 @@
 import app from "./app";
 import connectDb from "./config/config";
 import { env } from "./config/env";
-// import directUploader from "./scripts/directUploadFromSystem";
-// import { checkDbData, checkDuplicateFiles } from "./scripts/mongodbfiletest";
-import directDownloader from "./scripts/directDownloadToSystem";
-const startServer = async () => {
+const startServer = async (): Promise<void> => {
   try {
     await connectDb();
-    app.listen(env.PORT);
-    // checkDbData();
-    // checkDuplicateFiles();
-    //-->give path of folder in which your songs are present
-    // directUploader("E:/Personal Folders/Music/musics/hindi");
-    // directDownloader("E:/Personal Folders/Music/musics/hindi");
+    app.listen(env.PORT, () => {
+      console.log(`Server running on port ${env.PORT}`);
+    });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Error while starting the server: ", error.message, error);
+      console.error(
+        "Error while starting the server: ",
+        error.message,
+        "\n",
+        error
+      );
+    } else {
+      console.error("Error: ", error);
     }
     process.exit(1);
   }
