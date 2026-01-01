@@ -9,21 +9,25 @@ import userRouter from "./routes/user.route";
 import songRouter from "./routes/song.route";
 import indexRouter from "./routes/index.route";
 import consoleRouter from "./miscellaneous/console.routes";
+import { env } from "./config/env";
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "https://webmusicvault.vercel.app",
-];
+const allowedOrigins =
+  env.NODE_ENV === "production"
+    ? [env.FRONTEND_URL]
+    : [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://webmusicvault.vercel.app",
+      ];
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by cors policy"));
+        callback(new Error(`Cors blocked for origin ${origin}`));
       }
     },
     credentials: true,
