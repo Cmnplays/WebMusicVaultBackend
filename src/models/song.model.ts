@@ -63,7 +63,7 @@ export interface Song {
 
 const songSchema = new Schema<Song>(
   {
-    title: { type: String, required: true, index: true, trim: true },
+    title: { type: String, required: true, trim: true },
     duration: { type: Number, required: true, min: 1 },
     artist: { type: String, default: "Unknown Artist", trim: true },
     publicId: { type: String, required: true },
@@ -76,6 +76,7 @@ const songSchema = new Schema<Song>(
       type: String,
       enum: GENRES,
       default: "unknown",
+      index: true,
     },
     tags: {
       type: [String],
@@ -85,6 +86,7 @@ const songSchema = new Schema<Song>(
         ...TAG_CATEGORIES.instruments,
       ],
       default: [],
+      index: true,
     },
     playCount: { type: Number, default: 0 },
   },
@@ -92,6 +94,11 @@ const songSchema = new Schema<Song>(
     timestamps: true,
   }
 );
+
+songSchema.index({
+  title: "text",
+  artist: "text",
+});
 
 const Song = model<Song>("Song", songSchema);
 export default Song;
