@@ -8,9 +8,11 @@ import {
 interface User extends Document<Types.ObjectId> {
   username: string;
   email: string;
-  password: string;
-  role: "user" | "admin";
+  password?: string;
+  googleId?: string;
   isEmailVerified?: boolean;
+  authProvider: "local" | "google";
+  role: "user" | "admin";
   refreshToken: String | undefined;
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAuthTokens(): { accessToken: string; refreshToken: string };
@@ -29,7 +31,6 @@ const userSchema = new Schema<User>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
       minlength: [5, "Email must be greater than 4 characters"],
@@ -37,11 +38,21 @@ const userSchema = new Schema<User>(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: false, //because we are going to use both oauth login method and normal username/email + password login method
       select: false,
       //no regex, minlen, and maxlen for simplicity while testing
       // minlength: [8, "Password must be at least 8 characters"],
       // maxlength: [128, "Password must be at most 128 characters"],
+    },
+    authProvider: {
+      type: String,
+      enum: ["google", "local"],
+      default: "local",
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, //sparse only check uniqueness when googleid is not null or undefined
     },
     role: {
       type: String,
@@ -61,8 +72,15 @@ const userSchema = new Schema<User>(
     timestamps: true,
   }
 );
+userSchema.index({ email: 1, authProvider: 1 }, { unique: true });
 
 userSchema.pre("save", async function (next) {
+  if (this.authProvider !== "local") {
+    return next();
+  }
+  if (!this.password)
+    return next(new Error("Password is required for local login"));
+
   if (!this.isModified("password")) {
     return next();
   }

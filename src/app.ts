@@ -5,7 +5,7 @@ import cors from "cors";
 import errorMiddleware from "./middlewares/error.middleware";
 import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
 
-import userRouter from "./routes/user.route";
+import userRouter from "./routes/auth.route";
 import songRouter from "./routes/song.route";
 import indexRouter from "./routes/index.route";
 import consoleRouter from "./miscellaneous/console.routes";
