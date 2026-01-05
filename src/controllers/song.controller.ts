@@ -178,6 +178,7 @@ const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
       )
     );
 });
+const updateSongById = asyncHandler(async (req: Request, res: Response) => {});
 export {
   uploadSongs,
   getAllSongs,
@@ -185,4 +186,5 @@ export {
   deleteSongById,
   searchSong,
   getRandomSong,
+  updateSongById,
 };

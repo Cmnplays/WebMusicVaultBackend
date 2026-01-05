@@ -5,7 +5,7 @@ import {
   logout,
   refreshAccessToken,
   oauthLogin,
-} from "../controllers/user.controller";
+} from "../controllers/auth.controller";
 import {
   registerSchema,
   localLoginSchema,
