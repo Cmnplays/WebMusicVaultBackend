@@ -1,11 +1,29 @@
 import { Router } from "express";
-const router = Router();
-import { register, login, logout } from "../controllers/user.controller";
-import { registerSchema, loginSchema } from "../schemas/user.schema";
+import {
+  register,
+  login,
+  logout,
+  refreshAccessToken,
+  oauthLogin,
+} from "../controllers/user.controller";
+import {
+  registerSchema,
+  localLoginSchema,
+  oauthLoginSchema,
+} from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
 
-router.post("/register", validate(registerSchema), register);
-router.post("/login", validate(loginSchema), login);
+const router = Router();
+
+//Register
+router.post("/", validate(registerSchema), register);
+//Login
+router.post("/login", validate(localLoginSchema), login);
+//Oauth login
+router.post("oauth-login", validate(oauthLoginSchema), oauthLogin);
+//Refresh token
+router.get("/refresh-token", refreshAccessToken);
+//logout
 router.get("/logout", logout);
 
 export default router;

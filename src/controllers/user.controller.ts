@@ -101,5 +101,7 @@ const logout = (_: Request, res: Response): void => {
     .json(new ApiResponse(HttpStatus.OK, "User logged out successfully", null));
   return;
 };
+const refreshAccessToken = async (req: Request, res: Response) => {};
+const oauthLogin = async (req: Request, res: Response) => {};
 
-export { register, login, logout };
+export { register, login, logout, refreshAccessToken, oauthLogin };
