@@ -4,11 +4,13 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../services/auth.services";
+import avatars from "../config/avatars";
 
 interface User extends Document<Types.ObjectId> {
   username: string;
   email: string;
   password?: string;
+  avatar: string;
   googleId?: string;
   isEmailVerified?: boolean;
   authProvider: "local" | "google";
@@ -43,6 +45,10 @@ const userSchema = new Schema<User>(
       //no regex, minlen, and maxlen for simplicity while testing
       // minlength: [8, "Password must be at least 8 characters"],
       // maxlength: [128, "Password must be at most 128 characters"],
+    },
+    avatar: {
+      type: String,
+      default: "https://example.com/default-avatar.png",
     },
     authProvider: {
       type: String,
@@ -87,12 +93,16 @@ userSchema.pre("save", async function (next) {
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
   } catch (error) {
     const err =
       error instanceof Error ? error : new Error("Password hashing failed");
     next(err);
   }
+  if (!this.avatar) {
+    const randomAvatar = Math.floor(Math.random() * avatars.length);
+    this.avatar = avatars[randomAvatar];
+  }
+  next();
 });
 userSchema.methods.isPasswordCorrect = async function (
   password: string
