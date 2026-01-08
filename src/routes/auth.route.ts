@@ -12,7 +12,7 @@ import {
   oauthLoginSchema,
 } from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
-
+import { authMiddleware } from "../middlewares/auth.middleware";
 const router = Router();
 
 //Register
@@ -20,10 +20,10 @@ router.post("/", validate(registerSchema), register);
 //Login
 router.post("/login", validate(localLoginSchema), login);
 //Oauth login
-router.post("oauth-login", validate(oauthLoginSchema), oauthLogin);
+router.post("/oauth-login", validate(oauthLoginSchema), oauthLogin);
 //Refresh token
-router.get("/refresh-token", refreshAccessToken);
+router.get("/refresh-token", authMiddleware, refreshAccessToken);
 //logout
-router.get("/logout", logout);
+router.get("/logout", authMiddleware, logout);
 
 export default router;

@@ -1,2 +1,1 @@
-const authMiddleware = () => {};
-export default authMiddleware;
+export const authMiddleware = () => {};
