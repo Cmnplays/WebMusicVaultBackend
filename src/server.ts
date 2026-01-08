@@ -12,7 +12,7 @@ const startServer = async () => {
     // checkDuplicateFiles();
     //-->give path of folder in which your songs are present
     // directUploader("E:/Personal Folders/Music/musics/hindi");
-    // directDownloader("E:/Personal Folders/Music/musics/hindi");
+    directDownloader("E:/Personal Folders/Music");
   } catch (error) {
     if (error instanceof Error) {
       console.log("Error while starting the server: ", error.message, error);
