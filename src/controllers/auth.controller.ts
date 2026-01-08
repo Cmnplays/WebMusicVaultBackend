@@ -7,9 +7,6 @@ import ApiError from "../utils/ApiError";
 
 const register = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    if (!req.body) {
-      throw new ApiError(HttpStatus.BadRequest, "Request body is required");
-    }
     const { username, email, password } = req.body;
     const existingUser = await User.findOne({
       $or: [{ username: username }, { email: email }],

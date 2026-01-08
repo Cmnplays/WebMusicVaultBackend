@@ -4,7 +4,10 @@ import { ZodType } from "zod";
 export const validate = (schema: ZodType<any>) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     try {
-      schema.parse(req);
+      const parsed = schema.parse(req);
+      if (parsed.body) req.body = parsed.body;
+      if (parsed.query) req.query = parsed.query;
+      if (parsed.params) req.params = parsed.params;
       next();
     } catch (err) {
       next(err);
