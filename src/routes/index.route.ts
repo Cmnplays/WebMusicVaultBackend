@@ -9,7 +9,7 @@ import consoleRouter from "../miscellaneous/console.routes";
 
 const router = Router();
 
-router.use("/user", authRouter);
+router.use("/auth", authRouter);
 router.use("/song", songRouter);
 router.use("/user", userRouter);
 router.use("/playlist", playlistRouter);

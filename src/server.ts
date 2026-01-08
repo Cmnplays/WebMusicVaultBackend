@@ -1,6 +1,7 @@
 import app from "./app";
 import connectDb from "./config/config";
 import { env } from "./config/env";
+import "./config/passport";
 const startServer = async (): Promise<void> => {
   try {
     await connectDb();

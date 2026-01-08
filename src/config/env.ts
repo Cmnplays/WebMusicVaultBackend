@@ -25,6 +25,8 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, "Cloudinary API key is required"),
   CLOUDINARY_API_SECRET: z.string().min(1, "Cloudinary API secret is required"),
   FRONTEND_URL: z.string(),
+  GOOGLE_CLIENT_ID: z.string().min(1, "Google Client Id is required"),
+  GOOGLE_CLIENT_SECRET: z.string().min(1, "Google Client Secret is required"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

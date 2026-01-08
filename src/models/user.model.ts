@@ -5,10 +5,12 @@ import {
   generateRefreshToken,
 } from "../services/auth.services";
 import avatars from "../config/avatars";
+import { ref } from "process";
 
 interface User extends Document<Types.ObjectId> {
   username: string;
   email: string;
+  displayName: string;
   password?: string;
   avatar: string;
   googleId?: string;
@@ -17,7 +19,10 @@ interface User extends Document<Types.ObjectId> {
   role: "user" | "admin";
   refreshToken: String | undefined;
   isPasswordCorrect(password: string): Promise<boolean>;
-  generateAuthTokens(): { accessToken: string; refreshToken: string };
+  generateAuthTokens(): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }>;
 }
 const userSchema = new Schema<User>(
   {
@@ -28,7 +33,11 @@ const userSchema = new Schema<User>(
       lowercase: true,
       trim: true,
       minlength: [3, "Username must be greater than 2 characters"],
-      maxlength: [15, "Username must be at most 15 characters"],
+      maxlength: [30, "Username must be at most 30 characters"],
+    },
+    displayName: {
+      type: String,
+      trim: true,
     },
     email: {
       type: String,
@@ -110,15 +119,19 @@ userSchema.methods.isPasswordCorrect = async function (
   return await bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.generateAuthTokens = function (this: User): {
+userSchema.methods.generateAuthTokens = async function (this: User): Promise<{
   accessToken: string;
   refreshToken: string;
-} {
+}> {
+  const accessToken = generateAccessToken({ _id: this._id.toString() });
+  const refreshToken = generateRefreshToken({
+    _id: this._id.toString(),
+  });
+  this.refreshToken = refreshToken;
+  await this.save();
   return {
-    accessToken: generateAccessToken({ _id: this._id.toString() }),
-    refreshToken: generateRefreshToken({
-      _id: this._id.toString(),
-    }),
+    accessToken,
+    refreshToken,
   };
 };
 

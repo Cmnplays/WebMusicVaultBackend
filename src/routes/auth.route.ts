@@ -13,6 +13,7 @@ import {
 } from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
+import passport from "passport";
 const router = Router();
 
 //Register
@@ -20,7 +21,18 @@ router.post("/", validate(registerSchema), register);
 //Login
 router.post("/login", validate(localLoginSchema), login);
 //Oauth login
-router.post("/oauth-login", validate(oauthLoginSchema), oauthLogin);
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
+  }),
+  oauthLogin
+);
 //Refresh token
 router.get("/refresh-token", authMiddleware, refreshAccessToken);
 //logout

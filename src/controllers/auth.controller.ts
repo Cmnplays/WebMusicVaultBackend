@@ -4,86 +4,17 @@ import { Request, Response } from "express";
 import { HttpStatus } from "../utils/HttpStatus";
 import User from "../models/user.model";
 import ApiError from "../utils/ApiError";
+import { env } from "../config/env";
 
 const register = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { username, email, password } = req.body;
-    const existingUser = await User.findOne({
-      $or: [{ username: username }, { email: email }],
-    });
-    if (existingUser) {
-      throw new ApiError(HttpStatus.Conflict, "User already exists");
-    }
-    const user = await User.create({
-      username: username,
-      email: email,
-      password: password,
-    });
-
-    const { refreshToken, accessToken } = user.generateAuthTokens();
-
-    const options = {
-      secure: true,
-      httpOnly: true,
-    };
-    res
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
-      .status(HttpStatus.Created)
-      .json(
-        new ApiResponse(
-          HttpStatus.Created,
-          "User registered successfully",
-          user
-        )
-      );
-    return;
+    const { identifier, password } = req.body;
+    console.log(identifier, password);
   }
 );
 
 const login = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
-    if (!req.body) {
-      throw new ApiError(HttpStatus.BadRequest, "Request body is required");
-    }
-    const { identifier, password } = req.body;
-    const user = await User.findOne({
-      $or: [{ email: identifier }, { username: identifier }],
-    }).select("+password");
-    if (!user) {
-      throw new ApiError(HttpStatus.Unauthorized, "Invalid credentials");
-    }
-    const isPasswordValid = await user.isPasswordCorrect(password);
-    if (!isPasswordValid) {
-      throw new ApiError(HttpStatus.Unauthorized, "Invalid credentials");
-    }
-
-    const { refreshToken, accessToken } = user.generateAuthTokens();
-    const userResponse = {
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-
-    const options = {
-      secure: true,
-      httpOnly: true,
-    };
-    res
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
-      .status(HttpStatus.OK)
-      .json(
-        new ApiResponse(
-          HttpStatus.OK,
-          "User logged in successfully",
-          userResponse
-        )
-      );
-    return;
-  }
+  async (req: Request, res: Response): Promise<void> => {}
 );
 
 const logout = (_: Request, res: Response): void => {
@@ -99,6 +30,35 @@ const logout = (_: Request, res: Response): void => {
   return;
 };
 const refreshAccessToken = async (req: Request, res: Response) => {};
-const oauthLogin = async (req: Request, res: Response) => {};
+
+const oauthLogin = async (req: Request, res: Response) => {
+  const user = req.user as User;
+  const createdUser = await User.findById(user._id)
+    .select("-password -refreshToken")
+    .lean();
+  if (!createdUser) {
+    return res
+      .status(500)
+      .json(new ApiError(500, "User not found after OAuth login"));
+  }
+
+  const { accessToken, refreshToken } = await user.generateAuthTokens();
+  const options = {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: "lax",
+  };
+  console.log(createdUser);
+  res
+    .status(HttpStatus.Created)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(HttpStatus.Created, "Successfully logged in", {
+        user: createdUser,
+        accessToken,
+      })
+    );
+};
 
 export { register, login, logout, refreshAccessToken, oauthLogin };
