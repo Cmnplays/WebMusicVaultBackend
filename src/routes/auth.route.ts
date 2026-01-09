@@ -5,12 +5,11 @@ import {
   logout,
   refreshAccessToken,
   oauthLogin,
+  requestOtp,
+  verifyOtp,
+  resendOtp,
 } from "../controllers/auth.controller";
-import {
-  registerSchema,
-  localLoginSchema,
-  oauthLoginSchema,
-} from "../schemas/user.schema";
+import { registerSchema, localLoginSchema } from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import passport from "passport";
@@ -18,8 +17,10 @@ const router = Router();
 
 //Register
 router.post("/", validate(registerSchema), register);
+
 //Login
 router.post("/login", validate(localLoginSchema), login);
+
 //Oauth login
 router.get(
   "/google",
@@ -33,8 +34,15 @@ router.get(
   }),
   oauthLogin
 );
+
+//Email verification
+router.get("/request-otp", requestOtp);
+router.post("/verify-otp", verifyOtp);
+router.get("/resend-otp", resendOtp);
+
 //Refresh token
 router.get("/refresh-token", authMiddleware, refreshAccessToken);
+
 //logout
 router.get("/logout", authMiddleware, logout);
 

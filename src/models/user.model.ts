@@ -5,7 +5,6 @@ import {
   generateRefreshToken,
 } from "../services/auth.services";
 import avatars from "../config/avatars";
-import { ref } from "process";
 
 interface User extends Document<Types.ObjectId> {
   username: string;
@@ -15,6 +14,8 @@ interface User extends Document<Types.ObjectId> {
   avatar: string;
   googleId?: string;
   isEmailVerified?: boolean;
+  otp: string;
+  otpExpiry: Date;
   authProvider: "local" | "google";
   role: "user" | "admin";
   refreshToken: String | undefined;
@@ -28,7 +29,6 @@ const userSchema = new Schema<User>(
   {
     username: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
       trim: true,
@@ -41,7 +41,6 @@ const userSchema = new Schema<User>(
     },
     email: {
       type: String,
-      required: true,
       lowercase: true,
       trim: true,
       minlength: [5, "Email must be greater than 4 characters"],
@@ -57,7 +56,6 @@ const userSchema = new Schema<User>(
     },
     avatar: {
       type: String,
-      default: "https://example.com/default-avatar.png",
     },
     authProvider: {
       type: String,
@@ -77,6 +75,12 @@ const userSchema = new Schema<User>(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    otp: {
+      type: String,
+    },
+    otpExpiry: {
+      type: Date,
     },
     refreshToken: {
       type: String,
@@ -118,7 +122,6 @@ userSchema.methods.isPasswordCorrect = async function (
 ): Promise<boolean> {
   return await bcrypt.compare(password, this.password);
 };
-
 userSchema.methods.generateAuthTokens = async function (this: User): Promise<{
   accessToken: string;
   refreshToken: string;
@@ -134,6 +137,13 @@ userSchema.methods.generateAuthTokens = async function (this: User): Promise<{
     refreshToken,
   };
 };
+userSchema.set("toJSON", {
+  transform: (_doc, ret) => {
+    delete ret.password;
+    delete ret.refreshToken;
+    return ret;
+  },
+});
 
 const User = model<User>("User", userSchema);
 export default User;

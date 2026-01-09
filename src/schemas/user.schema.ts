@@ -2,14 +2,18 @@ import { z } from "zod";
 const username = z
   .string()
   .trim()
-  .min(3, "Username must be greater than 2 characters")
+  .min(3, "Username must be at least 3 characters")
   .max(30, "Username must be less than or equal to 30 characters")
   .regex(
-    /^[a-zA-Z0-9._]+$/,
-    "Username can only contain letters, numbers, and underscores"
-  );
+    /^[a-z0-9._]+$/,
+    "Username can only contain lowercase letters, numbers, dots, and underscores"
+  )
+  .transform((u) => u.toLowerCase());
 
-const email = z.email("Invalid email format").trim();
+const email = z
+  .email("Invalid email format")
+  .trim()
+  .transform((e) => e.toLowerCase());
 
 const password = z
   .string()
@@ -33,10 +37,4 @@ const localLoginSchema = z.object({
   }),
 });
 
-const oauthLoginSchema = z.object({
-  body: z.object({
-    idToken: z.string(),
-  }),
-});
-
-export { registerSchema, localLoginSchema, oauthLoginSchema };
+export { registerSchema, localLoginSchema };
