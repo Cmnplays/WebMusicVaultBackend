@@ -5,62 +5,60 @@ import { HttpStatus } from "../utils/HttpStatus";
 import User from "../models/user.model";
 import ApiError from "../utils/ApiError";
 import { env } from "../config/env";
-import { GenerateUsername } from "../utils/GenerateUsername";
 
-const oauthLogin = async (req: Request, res: Response) => {
-  const user = req.user as User;
-
-  if (!user) {
-    return res
-      .status(500)
-      .json(new ApiError(500, "User not found after OAuth login"));
-  }
-
-  const { accessToken, refreshToken } = await user.generateAuthTokens();
-  const options: import("express").CookieOptions = {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: "none",
-  };
-  res.status(HttpStatus.OK).cookie("refreshToken", refreshToken, options).json(
-    new ApiResponse(HttpStatus.OK, "Successfully logged in", {
-      user,
-      accessToken,
-    })
-  );
+const options: import("express").CookieOptions = {
+  httpOnly: true,
+  secure: env.NODE_ENV === "production",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  sameSite: "none",
 };
+
+const oauthLogin = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const user = req.user as User;
+
+    if (!user) {
+      throw new ApiError(500, "User not found after OAuth login");
+    }
+
+    const { accessToken, refreshToken } = await user.generateAuthTokens();
+    const options: import("express").CookieOptions = {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "none",
+    };
+    res
+      .status(HttpStatus.OK)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(HttpStatus.OK, "Successfully logged in", {
+          user,
+          accessToken,
+        })
+      );
+  }
+);
 
 const register = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { identifier, password } = req.body;
+    const { email, password, displayName, username } = req.body;
     const existingUser: User | null = await User.findOne({
-      $or: [{ username: identifier }, { email: identifier }],
+      $or: [{ username }, { email }],
     });
 
     if (existingUser) {
       throw new ApiError(
-        HttpStatus.BadRequest,
-        `User ${"@" + existingUser.username} is already registered`
+        HttpStatus.Conflict,
+        `User with email ${email} is already registered`
       );
     }
-    let user: User;
-
-    if (identifier.includes("@")) {
-      const username = GenerateUsername(identifier);
-      user = await User.create({
-        email: identifier,
-        username,
-        displayName: username,
-        password,
-      });
-    } else {
-      user = await User.create({
-        username: identifier,
-        displayName: identifier,
-        password,
-      });
-    }
+    const user: User = await User.create({
+      email,
+      username,
+      displayName,
+      password,
+    });
 
     if (!user) {
       throw new ApiError(
@@ -81,13 +79,6 @@ const register = asyncHandler(
 
     const { accessToken, refreshToken } = await user.generateAuthTokens();
 
-    const options: import("express").CookieOptions = {
-      httpOnly: true,
-      secure: env.NODE_ENV === "production",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "none",
-    };
-
     res
       .status(HttpStatus.Created)
       .cookie("refreshToken", refreshToken, options)
@@ -101,7 +92,44 @@ const register = asyncHandler(
 );
 
 const login = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {}
+  async (req: Request, res: Response): Promise<void> => {
+    const { identifier, password } = req.body;
+    const user: User | null = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.NotFound,
+        `User ${identifier} is not registered`
+      );
+    }
+
+    if (user.authProvider !== "local" && user.password == undefined) {
+      throw new ApiError(
+        HttpStatus.BadRequest,
+        `This account was registered with ${user.authProvider}. Please log in using ${user.authProvider} or set a password to enable password login.`
+      );
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+    if (!isPasswordCorrect) {
+      throw new ApiError(
+        HttpStatus.Unauthorized,
+        "Invalid email/username or password"
+      );
+    }
+    const { accessToken, refreshToken } = await user.generateAuthTokens();
+    res
+      .status(HttpStatus.OK)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(HttpStatus.OK, "Successfully logged in", {
+          user,
+          accessToken,
+        })
+      );
+  }
 );
 
 const logout = (_: Request, res: Response): void => {
@@ -113,17 +141,32 @@ const logout = (_: Request, res: Response): void => {
     .clearCookie("accessToken", options)
     .status(HttpStatus.OK)
     .json(new ApiResponse(HttpStatus.OK, "User logged out successfully", null));
-  return;
 };
 
-const requestOtp = asyncHandler((req: Request, res: Response) => {});
-const verifyOtp = asyncHandler((req: Request, res: Response) => {});
-const resendOtp = asyncHandler((req: Request, res: Response) => {});
+const suggestUsername = (req: Request, res: Response) => {
+  //will write this later
+};
 
-const refreshAccessToken = async (req: Request, res: Response) => {};
+const setPassword = asyncHandler(async (req: Request, res: Response) => {});
+
+const requestOtp = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {}
+);
+const verifyOtp = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {}
+);
+const resendOtp = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {}
+);
+
+const refreshAccessToken = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {}
+);
 
 export {
   register,
+  suggestUsername,
+  setPassword,
   login,
   logout,
   refreshAccessToken,

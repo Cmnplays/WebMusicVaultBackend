@@ -15,6 +15,12 @@ const email = z
   .trim()
   .transform((e) => e.toLowerCase());
 
+const displayName = z
+  .string()
+  .trim()
+  .min(3, "Display name must be at least 3 characters")
+  .max(30, "Display name must be less than or equal to 30 letters");
+
 const password = z
   .string()
   .min(6, "Password must be at least 6 characters long")
@@ -24,17 +30,33 @@ const identifier = email.or(username);
 
 const registerSchema = z.object({
   body: z.object({
-    identifier,
-    password: password.optional(),
-    authProvider: z.enum(["local", "google"]).default("local"),
+    email,
+    username,
+    displayName,
+    password: password,
   }),
 });
 
-const localLoginSchema = z.object({
+const loginSchema = z.object({
   body: z.object({
     identifier,
     password,
   }),
 });
 
-export { registerSchema, localLoginSchema };
+const suggestUsernameSchema = z.object({
+  body: z.object({
+    email,
+  }),
+});
+const setPasswordSchema = z.object({
+  body: z.object({
+    password,
+  }),
+});
+export {
+  registerSchema,
+  loginSchema,
+  suggestUsernameSchema,
+  setPasswordSchema,
+};

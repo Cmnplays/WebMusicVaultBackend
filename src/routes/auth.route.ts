@@ -3,23 +3,36 @@ import {
   register,
   login,
   logout,
+  suggestUsername,
+  setPassword,
   refreshAccessToken,
   oauthLogin,
   requestOtp,
   verifyOtp,
   resendOtp,
 } from "../controllers/auth.controller";
-import { registerSchema, localLoginSchema } from "../schemas/user.schema";
+import {
+  registerSchema,
+  loginSchema,
+  suggestUsernameSchema,
+  setPasswordSchema,
+} from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import passport from "passport";
+
 const router = Router();
 
 //Register
 router.post("/", validate(registerSchema), register);
-
+router.post(
+  "/username-suggestions",
+  validate(suggestUsernameSchema),
+  suggestUsername
+);
+router.post("/set-password", validate(setPasswordSchema), setPassword);
 //Login
-router.post("/login", validate(localLoginSchema), login);
+router.post("/login", validate(loginSchema), login);
 
 //Oauth login
 router.get(

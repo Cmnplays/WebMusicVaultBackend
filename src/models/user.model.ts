@@ -49,7 +49,7 @@ const userSchema = new Schema<User>(
     password: {
       type: String,
       required: false, //because we are going to use both oauth login method and normal username/email + password login method
-      select: false,
+      // select: false,
       //no regex, minlen, and maxlen for simplicity while testing
       // minlength: [8, "Password must be at least 8 characters"],
       // maxlength: [128, "Password must be at most 128 characters"],
