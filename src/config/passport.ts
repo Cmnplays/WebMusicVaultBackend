@@ -2,7 +2,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { env } from "./env";
 import User from "../models/user.model";
-import { generateUsername } from "../services/generateUsername";
+import { generateVerifiedUsername } from "../services/generateVerifiedUsername";
 
 passport.use(
   new GoogleStrategy(
@@ -22,7 +22,7 @@ passport.use(
         if (!user) {
           const email = profile.emails?.[0].value;
           user = await User.create({
-            username: await generateUsername(email!),
+            username: await generateVerifiedUsername(email!),
             email,
             displayName: profile.displayName,
             avatar: profile.photos?.[0].value,

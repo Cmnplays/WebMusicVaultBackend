@@ -52,7 +52,8 @@ const loginSchema = z.object({
 
 const suggestUsernameSchema = z.object({
   body: z.object({
-    email,
+    identifier,
+    n: z.coerce.number(),
   }),
 });
 const setPasswordSchema = z.object({

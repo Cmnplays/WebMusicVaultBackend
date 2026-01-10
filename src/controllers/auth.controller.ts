@@ -7,7 +7,9 @@ import ApiError from "../utils/ApiError";
 import { env } from "../config/env";
 import { sendEmail, generateOtpEmail } from "../services/email.services";
 import { generateOtp } from "../services/generateOtp";
+import { getUsernameSuggestions } from "../services/suggestUsernames";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { number } from "zod";
 
 const options: import("express").CookieOptions = {
   httpOnly: true,
@@ -161,8 +163,18 @@ const logout = asyncHandler(
   }
 );
 
-const suggestUsername = (req: Request, res: Response) => {
-  //will write this later
+const suggestUsername = (req: Request, res: Response): void => {
+  const data: { identifier: string; n: number } = req.body;
+  const usernames = getUsernameSuggestions(data);
+  return res
+    .status(HttpStatus.OK)
+    .json(
+      new ApiResponse(
+        HttpStatus.OK,
+        "Successfully sent list of suggested usernames",
+        usernames
+      )
+    );
 };
 
 //route for people who signed up with the oauth and now they are trying to login with normal local auth.So, they are asked to give otp send to their email and then set the password for their  id.
