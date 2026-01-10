@@ -225,10 +225,7 @@ const requestOtp = asyncHandler(
       );
     }
     if (purpose === "set-password" && user.password) {
-      throw new ApiError(
-        HttpStatus.Conflict,
-        "Password already set. Use forgot password instead."
-      );
+      throw new ApiError(HttpStatus.Conflict, "Password already set");
     }
     if (purpose === "verify-email" && user.isEmailVerified) {
       throw new ApiError(HttpStatus.Conflict, "Email already verified");
@@ -302,17 +299,18 @@ const resendOtp = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { email } = req.body;
     const user = await User.findOne({ email });
+    const { purpose } = req.query;
     if (!user) {
       throw new ApiError(
         HttpStatus.NotFound,
         `User with email ${email} is not registered`
       );
     }
-    if (user.isEmailVerified) {
-      throw new ApiError(
-        HttpStatus.Conflict,
-        `User with email ${email} is already verified`
-      );
+    if (purpose === "set-password" && user.password) {
+      throw new ApiError(HttpStatus.Conflict, "Password already set");
+    }
+    if (purpose === "verify-email" && user.isEmailVerified) {
+      throw new ApiError(HttpStatus.Conflict, "Email already verified");
     }
     if (user.otpExpiry && user.otpExpiry > new Date(Date.now() - 60 * 1000)) {
       throw new ApiError(

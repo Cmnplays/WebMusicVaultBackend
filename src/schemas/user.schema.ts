@@ -72,14 +72,7 @@ const requestOtpSchema = z.object({
   }),
 });
 
-const resendOtpSchema = z.object({
-  body: z.object({
-    email,
-  }),
-  query: z.object({
-    purpose,
-  }),
-});
+const resendOtpSchema = requestOtpSchema;
 
 const verifyEmailSchema = z.object({
   body: z.object({

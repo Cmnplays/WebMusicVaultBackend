@@ -6,7 +6,8 @@ export const validate = (schema: ZodType<any>) => {
     try {
       const parsed = schema.parse(req);
       if (parsed.body) req.body = parsed.body;
-      if (parsed.query) req.query = parsed.query;
+      // if (parsed.query) req.query = parsed.query; this is not valid as its query is read only
+      if (parsed.query) Object.assign(req.query, parsed.query);
       if (parsed.params) req.params = parsed.params;
       next();
     } catch (err) {
