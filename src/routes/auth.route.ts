@@ -16,6 +16,8 @@ import {
   loginSchema,
   suggestUsernameSchema,
   setPasswordSchema,
+  requestOtpSchema,
+  verifyOtpSchema,
 } from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
@@ -49,9 +51,9 @@ router.get(
 );
 
 //Email verification
-router.get("/request-otp", requestOtp);
-router.post("/verify-otp", verifyOtp);
-router.get("/resend-otp", resendOtp);
+router.post("/request-otp", validate(requestOtpSchema), requestOtp);
+router.post("/verify-otp", validate(verifyOtpSchema), verifyOtp);
+router.post("/resend-otp", validate(requestOtpSchema), resendOtp);
 
 //Refresh token
 router.get("/refresh-token", authMiddleware, refreshAccessToken);

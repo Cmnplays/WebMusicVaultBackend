@@ -14,10 +14,10 @@ interface User extends Document<Types.ObjectId> {
   avatar: string;
   googleId?: string;
   isEmailVerified?: boolean;
-  otp: string;
-  otpExpiry: Date;
-  authProvider: "local" | "google";
-  role: "user" | "admin";
+  otp?: string;
+  otpExpiry?: Date;
+  authProvider?: "local" | "google";
+  role?: "user" | "admin";
   refreshToken: String | undefined;
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAuthTokens(): Promise<{
@@ -91,6 +91,7 @@ const userSchema = new Schema<User>(
     timestamps: true,
   }
 );
+
 userSchema.index({ email: 1, authProvider: 1 }, { unique: true });
 
 userSchema.pre("save", async function (next) {

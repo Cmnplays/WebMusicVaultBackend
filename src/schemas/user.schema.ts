@@ -27,6 +27,10 @@ const password = z
   .max(50, "Password must be less than or equal to 50 characters");
 
 const identifier = email.or(username);
+const otp = z.coerce
+  .string()
+  .trim()
+  .length(6, "Otp must be combination of 6 numbers");
 
 const registerSchema = z.object({
   body: z.object({
@@ -54,9 +58,24 @@ const setPasswordSchema = z.object({
     password,
   }),
 });
+
+const requestOtpSchema = z.object({
+  body: z.object({
+    email,
+  }),
+});
+
+const verifyOtpSchema = z.object({
+  body: z.object({
+    email,
+    otp,
+  }),
+});
 export {
   registerSchema,
   loginSchema,
   suggestUsernameSchema,
   setPasswordSchema,
+  requestOtpSchema,
+  verifyOtpSchema,
 };
