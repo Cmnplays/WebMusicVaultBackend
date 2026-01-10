@@ -16,7 +16,7 @@ interface User extends Document<Types.ObjectId> {
   isEmailVerified?: boolean;
   otp?: string;
   otpExpiry?: Date;
-  authProvider?: "local" | "google";
+  authProviders?: string[];
   role?: "user" | "admin";
   refreshToken: String | undefined;
   isPasswordCorrect(password: string): Promise<boolean>;
@@ -43,6 +43,7 @@ const userSchema = new Schema<User>(
       type: String,
       lowercase: true,
       trim: true,
+      unique: true,
       minlength: [5, "Email must be greater than 4 characters"],
       maxlength: [50, "Email must be at most 50 characters"],
     },
@@ -57,10 +58,10 @@ const userSchema = new Schema<User>(
     avatar: {
       type: String,
     },
-    authProvider: {
-      type: String,
-      enum: ["google", "local"],
-      default: "local",
+    authProviders: {
+      type: [String],
+      enum: ["local", "google"],
+      default: ["local"],
     },
     googleId: {
       type: String,
@@ -92,22 +93,28 @@ const userSchema = new Schema<User>(
   }
 );
 
-userSchema.index({ email: 1, authProvider: 1 }, { unique: true });
-
 userSchema.pre("save", async function (next) {
-  if (this.authProvider !== "local") {
+  if (!this.authProviders?.includes("local")) {
+    console.log("failed1");
     return next();
   }
-  if (!this.password)
+  console.log("passed1");
+
+  if (!this.password) {
+    console.log("failed2");
     return next(new Error("Password is required for local login"));
+  }
 
   if (!this.isModified("password")) {
+    console.log("failed3");
     return next();
   }
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log("passed2", this.password);
   } catch (error) {
+    console.log("failed");
     const err =
       error instanceof Error ? error : new Error("Password hashing failed");
     next(err);

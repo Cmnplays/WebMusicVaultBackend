@@ -27,7 +27,7 @@ passport.use(
             displayName: profile.displayName,
             avatar: profile.photos?.[0].value,
             googleId: profile.id,
-            authProvider: "google",
+            authProviders: ["google"],
             isEmailVerified: true,
           });
         }

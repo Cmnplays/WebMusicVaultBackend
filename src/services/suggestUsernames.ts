@@ -8,6 +8,7 @@ export const getUsernameSuggestions = ({
   identifier: string;
   maxLength?: number;
 }) => {
+  if (n > 9) n = 9;
   if (identifier.includes("@")) {
     identifier = identifier.split("@")[0].toLowerCase();
   }

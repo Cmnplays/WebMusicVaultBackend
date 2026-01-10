@@ -9,7 +9,6 @@ import { sendEmail, generateOtpEmail } from "../services/email.services";
 import { generateOtp } from "../services/generateOtp";
 import { getUsernameSuggestions } from "../services/suggestUsernames";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { number } from "zod";
 
 const options: import("express").CookieOptions = {
   httpOnly: true,
@@ -111,18 +110,19 @@ const login = asyncHandler(
     const user: User | null = await User.findOne({
       $or: [{ email: identifier }, { username: identifier }],
     });
+    console.log(identifier, password);
 
     if (!user) {
       throw new ApiError(
-        HttpStatus.NotFound,
-        `User ${identifier} is not registered`
+        HttpStatus.Unauthorized,
+        "Invalid email/username or password"
       );
     }
 
-    if (user.authProvider !== "local" && user.password == undefined) {
+    if (!user.authProviders!.includes("local") && user.password == undefined) {
       throw new ApiError(
-        HttpStatus.BadRequest,
-        `This account was registered with ${user.authProvider}. Please log in using ${user.authProvider} or set a password to enable password login.`
+        HttpStatus.Forbidden,
+        `This account was registered with google. Please log in using google or set a password to enable password login.`
       );
     }
 
@@ -166,7 +166,7 @@ const logout = asyncHandler(
 const suggestUsername = (req: Request, res: Response): void => {
   const data: { identifier: string; n: number } = req.body;
   const usernames = getUsernameSuggestions(data);
-  return res
+  res
     .status(HttpStatus.OK)
     .json(
       new ApiResponse(
@@ -207,6 +207,7 @@ const setPassword = asyncHandler(async (req: Request, res: Response) => {
   user.password = password;
   user.otp = undefined;
   user.otpExpiry = undefined;
+  user.authProviders?.push("local");
   await user.save();
   const { refreshToken, accessToken } = await user.generateAuthTokens();
 
@@ -360,7 +361,7 @@ const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
-      throw new ApiError(HttpStatus.Unauthorized, "Access token is required");
+      throw new ApiError(HttpStatus.Unauthorized, "Refresh token is required");
     }
     const decoded = jwt.verify(
       refreshToken,

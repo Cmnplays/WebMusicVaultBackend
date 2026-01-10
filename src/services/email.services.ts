@@ -9,12 +9,14 @@ interface EmailOptions {
   subject: string;
   html: string;
 }
+
 const EMAIL_STYLES = {
   container: `
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     max-width: 600px;
     margin: 0 auto;
     padding: 40px 20px;
+    background-color: #667eea;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   `,
   card: `
@@ -43,8 +45,9 @@ const EMAIL_STYLES = {
     margin-bottom: 16px;
   `,
   otpBox: `
+    background-color: #667eea !important;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    color: #ffffff !important;
     font-size: 36px;
     font-weight: bold;
     letter-spacing: 8px;
@@ -70,6 +73,17 @@ const EMAIL_STYLES = {
     border-radius: 8px;
     color: #742a2a;
     font-size: 14px;
+  `,
+  button: `
+    display: inline-block;
+    background-color: #667eea !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff !important;
+    padding: 16px 40px;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
   `,
 };
 
@@ -155,7 +169,7 @@ export const generateOtpEmail = (otp: string) => {
   return { subject, html };
 };
 
-// Welcome Email Template (bonus!)
+// Welcome Email Template
 export const generateWelcomeEmail = (username: string) => {
   const subject = "Welcome to WebMusicVault! 🎉";
 
@@ -193,16 +207,7 @@ export const generateWelcomeEmail = (username: string) => {
             </ul>
             
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${env.FRONTEND_URL}" style="
-                display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 16px 40px;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 16px;
-              ">
+              <a href="${env.FRONTEND_URL}" style="${EMAIL_STYLES.button}">
                 Get Started
               </a>
             </div>
@@ -221,7 +226,7 @@ export const generateWelcomeEmail = (username: string) => {
   return { subject, html };
 };
 
-// Password Reset Email Template (bonus!)
+// Password Reset Email Template
 export const generatePasswordResetEmail = (resetLink: string) => {
   const subject = "Reset Your WebMusicVault Password";
 
@@ -248,16 +253,7 @@ export const generatePasswordResetEmail = (resetLink: string) => {
             </p>
             
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${resetLink}" style="
-                display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 16px 40px;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 16px;
-              ">
+              <a href="${resetLink}" style="${EMAIL_STYLES.button}">
                 Reset Password
               </a>
             </div>
