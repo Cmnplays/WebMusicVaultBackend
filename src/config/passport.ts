@@ -2,16 +2,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { env } from "./env";
 import User from "../models/user.model";
-
-function sanitizeUsername(email: string, maxLength = 30): string {
-  let username = email.split("@")[0];
-  username = username.replace(/[^a-zA-Z0-9._]/g, "");
-  username = username.toLowerCase();
-
-  if (username.length > maxLength) username = username.slice(0, maxLength);
-  if (username.length < 3) username = username.padEnd(3, "0");
-  return username;
-}
+import { generateUsername } from "../services/generateUsername";
 
 passport.use(
   new GoogleStrategy(
@@ -31,7 +22,7 @@ passport.use(
         if (!user) {
           const email = profile.emails?.[0].value;
           user = await User.create({
-            username: sanitizeUsername(email!),
+            username: await generateUsername(email!),
             email,
             displayName: profile.displayName,
             avatar: profile.photos?.[0].value,
