@@ -32,6 +32,8 @@ const otp = z.coerce
   .trim()
   .length(6, "Otp must be combination of 6 numbers");
 
+const purpose = z.enum(["verify-email", "set-password"]);
+
 const registerSchema = z.object({
   body: z.object({
     email,
@@ -55,7 +57,9 @@ const suggestUsernameSchema = z.object({
 });
 const setPasswordSchema = z.object({
   body: z.object({
+    identifier: email.or(username),
     password,
+    otp,
   }),
 });
 
@@ -63,9 +67,21 @@ const requestOtpSchema = z.object({
   body: z.object({
     email,
   }),
+  query: z.object({
+    purpose,
+  }),
 });
 
-const verifyOtpSchema = z.object({
+const resendOtpSchema = z.object({
+  body: z.object({
+    email,
+  }),
+  query: z.object({
+    purpose,
+  }),
+});
+
+const verifyEmailSchema = z.object({
   body: z.object({
     email,
     otp,
@@ -77,5 +93,6 @@ export {
   suggestUsernameSchema,
   setPasswordSchema,
   requestOtpSchema,
-  verifyOtpSchema,
+  verifyEmailSchema,
+  resendOtpSchema,
 };

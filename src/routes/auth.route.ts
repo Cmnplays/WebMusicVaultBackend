@@ -8,7 +8,7 @@ import {
   refreshAccessToken,
   oauthLogin,
   requestOtp,
-  verifyOtp,
+  verifyEmail,
   resendOtp,
 } from "../controllers/auth.controller";
 import {
@@ -17,7 +17,8 @@ import {
   suggestUsernameSchema,
   setPasswordSchema,
   requestOtpSchema,
-  verifyOtpSchema,
+  resendOtpSchema,
+  verifyEmailSchema,
 } from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
@@ -52,11 +53,11 @@ router.get(
 
 //Email verification
 router.post("/request-otp", validate(requestOtpSchema), requestOtp);
-router.post("/verify-otp", validate(verifyOtpSchema), verifyOtp);
-router.post("/resend-otp", validate(requestOtpSchema), resendOtp);
+router.post("/verify-email", validate(verifyEmailSchema), verifyEmail);
+router.post("/resend-otp", validate(resendOtpSchema), resendOtp);
 
 //Refresh token
-router.get("/refresh-token", authMiddleware, refreshAccessToken);
+router.get("/refresh-token", refreshAccessToken);
 
 //logout
 router.get("/logout", authMiddleware, logout);

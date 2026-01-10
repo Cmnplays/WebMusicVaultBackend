@@ -1,12 +1,13 @@
 import asyncHandler from "express-async-handler";
 import ApiResponse from "../utils/ApiResponse";
-import { Request, Response, urlencoded } from "express";
+import { Request, Response } from "express";
 import { HttpStatus } from "../utils/HttpStatus";
 import User from "../models/user.model";
 import ApiError from "../utils/ApiError";
 import { env } from "../config/env";
 import { sendEmail, generateOtpEmail } from "../services/email.services";
 import { generateOtp } from "../services/generateOtp";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 const options: import("express").CookieOptions = {
   httpOnly: true,
@@ -164,12 +165,52 @@ const suggestUsername = (req: Request, res: Response) => {
   //will write this later
 };
 
-const setPassword = asyncHandler(async (req: Request, res: Response) => {});
+//route for people who signed up with the oauth and now they are trying to login with normal local auth.So, they are asked to give otp send to their email and then set the password for their  id.
+const setPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { identifier, password, otp } = req.body;
+  const user = await User.findOne({
+    $or: [{ email: identifier }, { username: identifier }],
+  });
+  if (!user) {
+    throw new ApiError(
+      HttpStatus.NotFound,
+      `User ${identifier} is not registered`
+    );
+  }
+  if (user.password) {
+    throw new ApiError(HttpStatus.Conflict, "Password already set");
+  }
+  if (!user.otp || !user.otpExpiry) {
+    throw new ApiError(
+      HttpStatus.BadRequest,
+      "No OTP found. Please request a new one."
+    );
+  }
+  if (user.otpExpiry < new Date()) {
+    throw new ApiError(HttpStatus.BadRequest, "OTP expired.Please Try again.");
+  }
+  if (user.otp !== otp) {
+    throw new ApiError(HttpStatus.BadRequest, "Invalid Otp. Please Try again.");
+  }
+  user.password = password;
+  user.otp = undefined;
+  user.otpExpiry = undefined;
+  await user.save();
+  const { refreshToken, accessToken } = await user.generateAuthTokens();
+
+  res.status(HttpStatus.OK).cookie("refreshToken", refreshToken, options).json(
+    new ApiResponse(HttpStatus.OK, "Successfully set password", {
+      user,
+      accessToken,
+    })
+  );
+});
 
 //Otp Controllers
 const requestOtp = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { email } = req.body;
+    const { purpose } = req.query;
     const user = await User.findOne({ email });
     if (!user) {
       throw new ApiError(
@@ -182,6 +223,15 @@ const requestOtp = asyncHandler(
         HttpStatus.TooManyRequests,
         "OTP already sent. Try again later."
       );
+    }
+    if (purpose === "set-password" && user.password) {
+      throw new ApiError(
+        HttpStatus.Conflict,
+        "Password already set. Use forgot password instead."
+      );
+    }
+    if (purpose === "verify-email" && user.isEmailVerified) {
+      throw new ApiError(HttpStatus.Conflict, "Email already verified");
     }
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
@@ -208,7 +258,7 @@ const requestOtp = asyncHandler(
       );
   }
 );
-const verifyOtp = asyncHandler(
+const verifyEmail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { email, otp } = req.body;
     const user = await User.findOne({ email });
@@ -297,7 +347,30 @@ const resendOtp = asyncHandler(
 );
 
 const refreshAccessToken = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {}
+  async (req: Request, res: Response): Promise<void> => {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      throw new ApiError(HttpStatus.Unauthorized, "Access token is required");
+    }
+    const decoded = jwt.verify(
+      refreshToken,
+      env.REFRESH_TOKEN_SECRET
+    ) as JwtPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      throw new ApiError(HttpStatus.Unauthorized, "Invalid token");
+    }
+    if (user.refreshToken !== refreshToken) {
+      throw new ApiError(HttpStatus.Unauthorized, "Token has been revoked");
+    }
+    const { accessToken, refreshToken: newRefreshToken } =
+      await user.generateAuthTokens();
+
+    res
+      .status(HttpStatus.OK)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json({ accessToken });
+  }
 );
 
 export {
@@ -309,6 +382,6 @@ export {
   refreshAccessToken,
   oauthLogin,
   requestOtp,
-  verifyOtp,
+  verifyEmail,
   resendOtp,
 };
