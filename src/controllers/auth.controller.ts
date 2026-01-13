@@ -7,10 +7,23 @@ import ApiError from "../utils/ApiError";
 import { env } from "../config/env";
 import { sendOtpService } from "../services/otp.services";
 import { getUsernameSuggestions } from "../services/username.services";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { SendOtpRequest } from "../schemas/user.schema";
+import {
+  LoginRequest,
+  SendOtpRequest,
+  SetPasswordRequest,
+  VerifyEmailRequest,
+} from "../schemas/user.schema";
+import { CookieOptions } from "express";
+import { RegisterRequest } from "../schemas/user.schema";
+import {
+  registerService,
+  loginService,
+  setPasswordService,
+  verifyEmailService,
+  refreshAccessTokenService,
+} from "../services/auth.services";
 
-const options: import("express").CookieOptions = {
+const options: CookieOptions = {
   httpOnly: true,
   secure: env.NODE_ENV === "production",
   maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -40,58 +53,8 @@ const oauthLogin = asyncHandler(
 
 const register = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { email, password, displayName, username } = req.body;
-    // const existingUser: User | null = await User.findOne({
-    //   $or: [{ username }, { email }],
-    // });
-    const existingEmailUser = await User.findOne({ email });
-    if (existingEmailUser) {
-      throw new ApiError(
-        HttpStatus.Conflict,
-        `User with email ${email} is already registered`
-      );
-    }
-
-    const existingUsernameUser = await User.findOne({ username });
-    if (existingUsernameUser) {
-      throw new ApiError(
-        HttpStatus.Conflict,
-        `Username ${username} is already taken`
-      );
-    }
-
-    // if (existingUser) {
-    //   throw new ApiError(
-    //     HttpStatus.Conflict,
-    //     `User with email ${email} is already registered`
-    //   );
-    // }
-    const user: User = await User.create({
-      email,
-      username,
-      displayName,
-      password,
-    });
-
-    if (!user) {
-      throw new ApiError(
-        HttpStatus.InternalServerError,
-        "Error while registering user"
-      );
-    }
-    //*Method-1
-    // const createdUser: User | null = await User.findById(user._id)
-    //   .select("-password -refreshToken")
-    //   .lean();
-    // better approach
-    //*Method-2
-    // const createdUser = user.toObject();
-    // delete createdUser.password;
-    // delete createdUser.refreshToken;
-    //*Method-3 -> Automated removal of these two fields inside the schema of user itself
-
-    const { accessToken, refreshToken } = await user.generateAuthTokens();
-
+    const data = req.body as RegisterRequest;
+    const { refreshToken, accessToken, user } = await registerService(data);
     res
       .status(HttpStatus.Created)
       .cookie("refreshToken", refreshToken, options)
@@ -106,33 +69,8 @@ const register = asyncHandler(
 
 const login = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { identifier, password } = req.body;
-    const user: User | null = await User.findOne({
-      $or: [{ email: identifier }, { username: identifier }],
-    });
-
-    if (!user) {
-      throw new ApiError(
-        HttpStatus.Unauthorized,
-        "Invalid email/username or password"
-      );
-    }
-
-    if (!user.authProviders!.includes("local") && user.password == undefined) {
-      throw new ApiError(
-        HttpStatus.Forbidden,
-        `This account was registered with google. Please log in using google or set a password to enable password login.`
-      );
-    }
-
-    const isPasswordCorrect = await user.isPasswordCorrect(password);
-    if (!isPasswordCorrect) {
-      throw new ApiError(
-        HttpStatus.Unauthorized,
-        "Invalid email/username or password"
-      );
-    }
-    const { accessToken, refreshToken } = await user.generateAuthTokens();
+    const data = req.body as LoginRequest;
+    const { accessToken, refreshToken, user } = await loginService(data);
     res
       .status(HttpStatus.OK)
       .cookie("refreshToken", refreshToken, options)
@@ -178,37 +116,8 @@ const suggestUsername = (req: Request, res: Response): void => {
 
 //route for people who signed up with the oauth and now they are trying to login with normal local auth.So, they are asked to give otp send to their email and then set the password for their  id.
 const setPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { identifier, password, otp } = req.body;
-  const user = await User.findOne({
-    $or: [{ email: identifier }, { username: identifier }],
-  });
-  if (!user) {
-    throw new ApiError(
-      HttpStatus.NotFound,
-      `User ${identifier} is not registered`
-    );
-  }
-  if (user.password) {
-    throw new ApiError(HttpStatus.Conflict, "Password already set");
-  }
-  if (!user.otp || !user.otpExpiry) {
-    throw new ApiError(
-      HttpStatus.BadRequest,
-      "No OTP found. Please request a new one."
-    );
-  }
-  if (user.otpExpiry < new Date()) {
-    throw new ApiError(HttpStatus.BadRequest, "OTP expired.Please Try again.");
-  }
-  if (user.otp !== otp) {
-    throw new ApiError(HttpStatus.BadRequest, "Invalid Otp. Please Try again.");
-  }
-  user.password = password;
-  user.otp = undefined;
-  user.otpExpiry = undefined;
-  user.authProviders?.push("local");
-  await user.save();
-  const { refreshToken, accessToken } = await user.generateAuthTokens();
+  const data = req.body as SetPasswordRequest;
+  const { refreshToken, accessToken, user } = await setPasswordService(data);
 
   res.status(HttpStatus.OK).cookie("refreshToken", refreshToken, options).json(
     new ApiResponse(HttpStatus.OK, "Successfully set password", {
@@ -237,36 +146,8 @@ const sendOtp = asyncHandler(
 );
 const verifyEmail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { email, otp } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      throw new ApiError(
-        HttpStatus.NotFound,
-        `User with email ${email} is not registered`
-      );
-    }
-    if (!user.otp || !user.otpExpiry) {
-      throw new ApiError(
-        HttpStatus.BadRequest,
-        "No OTP found. Please request a new one."
-      );
-    }
-    if (user.otpExpiry && user.otpExpiry < new Date()) {
-      throw new ApiError(
-        HttpStatus.BadRequest,
-        "OTP expired.Please Try again."
-      );
-    }
-    if (user.otp !== otp) {
-      throw new ApiError(
-        HttpStatus.BadRequest,
-        "Invalid Otp. Please Try again."
-      );
-    }
-    user.isEmailVerified = true;
-    user.otp = undefined;
-    user.otpExpiry = undefined;
-    await user.save();
+    const data = req.body as VerifyEmailRequest;
+    await verifyEmailService(data);
 
     res
       .status(HttpStatus.OK)
@@ -279,22 +160,9 @@ const verifyEmail = asyncHandler(
 const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      throw new ApiError(HttpStatus.Unauthorized, "Refresh token is required");
-    }
-    const decoded = jwt.verify(
-      refreshToken,
-      env.REFRESH_TOKEN_SECRET
-    ) as JwtPayload;
-    const user = await User.findById(decoded._id);
-    if (!user) {
-      throw new ApiError(HttpStatus.Unauthorized, "Invalid token");
-    }
-    if (user.refreshToken !== refreshToken) {
-      throw new ApiError(HttpStatus.Unauthorized, "Token has been revoked");
-    }
-    const { accessToken, refreshToken: newRefreshToken } =
-      await user.generateAuthTokens();
+    const { accessToken, newRefreshToken } = await refreshAccessTokenService(
+      refreshToken
+    );
 
     res
       .status(HttpStatus.OK)
