@@ -5,10 +5,10 @@ import { HttpStatus } from "../utils/HttpStatus";
 import User from "../models/user.model";
 import ApiError from "../utils/ApiError";
 import { env } from "../config/env";
-import { sendEmail, generateOtpEmail } from "../services/email.services";
-import { generateOtp } from "../services/generateOtp";
-import { getUsernameSuggestions } from "../services/suggestUsernames";
+import { sendOtpService } from "../services/otp.services";
+import { getUsernameSuggestions } from "../services/username.services";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { SendOtpRequest } from "../schemas/user.schema";
 
 const options: import("express").CookieOptions = {
   httpOnly: true,
@@ -110,7 +110,6 @@ const login = asyncHandler(
     const user: User | null = await User.findOne({
       $or: [{ email: identifier }, { username: identifier }],
     });
-    console.log(identifier, password);
 
     if (!user) {
       throw new ApiError(
@@ -220,43 +219,11 @@ const setPassword = asyncHandler(async (req: Request, res: Response) => {
 });
 
 //Otp Controllers
-const requestOtp = asyncHandler(
+const sendOtp = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { email } = req.body;
-    const { purpose } = req.query;
-    const user = await User.findOne({ email });
-    if (!user) {
-      throw new ApiError(
-        HttpStatus.NotFound,
-        `User with email ${email} is not registered`
-      );
-    }
-    if (user.otpExpiry && user.otpExpiry > new Date()) {
-      throw new ApiError(
-        HttpStatus.TooManyRequests,
-        "OTP already sent. Try again later."
-      );
-    }
-    if (purpose === "set-password" && user.password) {
-      throw new ApiError(HttpStatus.Conflict, "Password already set");
-    }
-    if (purpose === "verify-email" && user.isEmailVerified) {
-      throw new ApiError(HttpStatus.Conflict, "Email already verified");
-    }
-    const otp = generateOtp();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-    user.otp = otp;
-    user.otpExpiry = otpExpiry;
-    await user.save();
-
-    const { subject, html } = generateOtpEmail(otp);
-    const { error } = await sendEmail({ to: email, subject, html });
-    if (error) {
-      throw new ApiError(error.statusCode as number, error.message);
-    }
-    if (process.env.NODE_ENV === "development") {
-      console.log(`OTP for ${email}: ${otp}`);
-    }
+    const { email } = req.body as SendOtpRequest["body"];
+    const { purpose } = req.query as SendOtpRequest["query"];
+    await sendOtpService({ email, purpose });
     res
       .status(HttpStatus.OK)
       .json(
@@ -308,54 +275,6 @@ const verifyEmail = asyncHandler(
       );
   }
 );
-const resendOtp = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    const { purpose } = req.query;
-    if (!user) {
-      throw new ApiError(
-        HttpStatus.NotFound,
-        `User with email ${email} is not registered`
-      );
-    }
-    if (purpose === "set-password" && user.password) {
-      throw new ApiError(HttpStatus.Conflict, "Password already set");
-    }
-    if (purpose === "verify-email" && user.isEmailVerified) {
-      throw new ApiError(HttpStatus.Conflict, "Email already verified");
-    }
-    if (user.otpExpiry && user.otpExpiry > new Date(Date.now() - 60 * 1000)) {
-      throw new ApiError(
-        HttpStatus.TooManyRequests,
-        "Please wait one minute before resending Otp"
-      );
-    }
-    const otp = generateOtp();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-    user.otp = otp;
-    user.otpExpiry = otpExpiry;
-    await user.save();
-
-    const { subject, html } = generateOtpEmail(otp);
-    const { error } = await sendEmail({ to: email, subject, html });
-    if (error) {
-      throw new ApiError(error.statusCode as number, error.message);
-    }
-    if (process.env.NODE_ENV === "development") {
-      console.log(`OTP for ${email}: ${otp}`);
-    }
-    res
-      .status(HttpStatus.OK)
-      .json(
-        new ApiResponse(
-          HttpStatus.OK,
-          "Successfully send the otp to your email",
-          null
-        )
-      );
-  }
-);
 
 const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -392,7 +311,6 @@ export {
   logout,
   refreshAccessToken,
   oauthLogin,
-  requestOtp,
+  sendOtp,
   verifyEmail,
-  resendOtp,
 };

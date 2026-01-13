@@ -7,17 +7,15 @@ import {
   setPassword,
   refreshAccessToken,
   oauthLogin,
-  requestOtp,
+  sendOtp,
   verifyEmail,
-  resendOtp,
 } from "../controllers/auth.controller";
 import {
   registerSchema,
   loginSchema,
   suggestUsernameSchema,
   setPasswordSchema,
-  requestOtpSchema,
-  resendOtpSchema,
+  sendOtpSchema,
   verifyEmailSchema,
 } from "../schemas/user.schema";
 import { validate } from "../middlewares/validate.middleware";
@@ -52,9 +50,9 @@ router.get(
 );
 
 //Email verification
-router.post("/request-otp", validate(requestOtpSchema), requestOtp);
+router.post("/request-otp", validate(sendOtpSchema), sendOtp);
 router.post("/verify-email", validate(verifyEmailSchema), verifyEmail);
-router.post("/resend-otp", validate(resendOtpSchema), resendOtp);
+router.post("/resend-otp", validate(sendOtpSchema), sendOtp);
 
 //Refresh token
 router.get("/refresh-token", refreshAccessToken);

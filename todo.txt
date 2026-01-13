@@ -6,4 +6,6 @@ add tags in backend, genre language and one tag field for tags except genre and 
 
 
 4.got a idea that in /random route we can also accept artist name genre and some other things and also can like customize randomness accourdint to those values also
+
 check resend otp and verify otp are doing kinda same thing and consider changing title of email whether it's for verify email or for set password
+idea-merge the resend otp and request otp into single snedOtp
