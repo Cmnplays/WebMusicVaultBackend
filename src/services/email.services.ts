@@ -142,7 +142,7 @@ export const generateOtpEmail = (otp: string) => {
             </div>
             
             <p style="${EMAIL_STYLES.text}">
-              This code will expire in <strong>5 minutes</strong>.
+              This code will expire in <strong>10 minutes</strong>.
             </p>
             
             <div style="${EMAIL_STYLES.warning}">

@@ -64,7 +64,7 @@ const setPasswordSchema = z.object({
   }),
 });
 
-const requestOtpSchema = z.object({
+const sendOtpSchema = z.object({
   body: z.object({
     email,
   }),
@@ -73,20 +73,34 @@ const requestOtpSchema = z.object({
   }),
 });
 
-const resendOtpSchema = requestOtpSchema;
-
 const verifyEmailSchema = z.object({
   body: z.object({
     email,
     otp,
   }),
 });
+
+type RegisterRequest = z.infer<typeof registerSchema>["body"];
+type LoginRequest = z.infer<typeof loginSchema>["body"];
+type SuggestUsernameRequest = z.infer<typeof suggestUsernameSchema>["body"];
+type SetPasswordRequest = z.infer<typeof setPasswordSchema>["body"];
+type SendOtpRequest = {
+  body: z.infer<typeof sendOtpSchema>["body"];
+  query: z.infer<typeof sendOtpSchema>["query"];
+};
+type VerifyEmailRequest = z.infer<typeof verifyEmailSchema>["body"];
+
 export {
   registerSchema,
   loginSchema,
   suggestUsernameSchema,
   setPasswordSchema,
-  requestOtpSchema,
   verifyEmailSchema,
-  resendOtpSchema,
+  sendOtpSchema,
+  RegisterRequest,
+  LoginRequest,
+  SuggestUsernameRequest,
+  SetPasswordRequest,
+  SendOtpRequest,
+  VerifyEmailRequest,
 };

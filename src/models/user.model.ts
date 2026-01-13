@@ -95,26 +95,20 @@ const userSchema = new Schema<User>(
 
 userSchema.pre("save", async function (next) {
   if (!this.authProviders?.includes("local")) {
-    console.log("failed1");
     return next();
   }
-  console.log("passed1");
 
   if (!this.password) {
-    console.log("failed2");
     return next(new Error("Password is required for local login"));
   }
 
   if (!this.isModified("password")) {
-    console.log("failed3");
     return next();
   }
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    console.log("passed2", this.password);
   } catch (error) {
-    console.log("failed");
     const err =
       error instanceof Error ? error : new Error("Password hashing failed");
     next(err);
