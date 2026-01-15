@@ -87,14 +87,23 @@ type Tags =
   | VocalTag
   | ThemeTag;
 
+export const TAGS = [
+  ...TAG_CATEGORIES.language,
+  ...TAG_CATEGORIES.mood,
+  ...TAG_CATEGORIES.instruments,
+  ...TAG_CATEGORIES.tempo,
+  ...TAG_CATEGORIES.theme,
+  ...TAG_CATEGORIES.vocal,
+];
+
 export interface Song {
   title: string;
   duration: number;
-  artist: string;
+  artist?: string;
   publicId: string;
   fileUrl: string;
-  owner?: Types.ObjectId;
-  genre: Genre;
+  owner: Types.ObjectId;
+  genre?: Genre;
   tags?: Tags[];
   playCount: number;
   createdAt: Date;
@@ -105,12 +114,13 @@ const songSchema = new Schema<Song>(
   {
     title: { type: String, required: true, trim: true },
     duration: { type: Number, required: true, min: 1 },
-    artist: { type: String, default: "Unknown Artist", trim: true },
+    artist: { type: String, default: "unknown artist", trim: true },
     publicId: { type: String, required: true },
     fileUrl: { type: String, required: true },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
     genre: {
       type: String,
@@ -120,11 +130,7 @@ const songSchema = new Schema<Song>(
     },
     tags: {
       type: [String],
-      enum: [
-        ...TAG_CATEGORIES.language,
-        ...TAG_CATEGORIES.mood,
-        ...TAG_CATEGORIES.instruments,
-      ],
+      enum: TAGS,
       default: [],
       index: true,
     },

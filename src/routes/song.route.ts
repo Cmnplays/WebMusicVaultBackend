@@ -1,27 +1,32 @@
 import { Router } from "express";
-import multer from "multer";
-
 const router = Router();
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+import { upload } from "../middlewares/multer.middleware";
 
 import {
   uploadSongs,
-  getAllSongs,
   getSongById,
   deleteSongById,
   getRandomSong,
   updateSongById,
+  getSongs,
 } from "../controllers/song.controller";
+import { uploadSongSchema } from "../schemas/song.schema";
+import { validate } from "../middlewares/validate.middleware";
 
 //Upload song
-router.post("/", upload.array("songs", 3), uploadSongs);
+router.post(
+  "/",
+  upload.array("songs", 3),
+  validate(uploadSongSchema),
+  uploadSongs
+);
 //Get songs for main page and for searching songs
-router.get("/", getAllSongs);
-//Get random songs for shuffle play
-router.get("/random", getRandomSong);
+router.get("/", getSongs);
 //Get song by id
 router.get("/:id", getSongById);
+//Get random songs for shuffle play
+router.get("/random", getRandomSong);
+
 //Update song by id
 router.put("/:id", updateSongById);
 //Delete song by id

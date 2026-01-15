@@ -4,10 +4,9 @@ import { HttpStatus } from "../utils/HttpStatus";
 import ApiError from "../utils/ApiError";
 import { generateOtpEmail } from "./email.services";
 import { sendEmail } from "./email.services";
-const generateOtp = (): string => {
-  const min = 100000;
-  const max = 999999;
-  const otp = crypto.randomInt(min, max + 1).toString();
+import bcrypt from "bcryptjs";
+const generateOtp = async (): Promise<string> => {
+  let otp = crypto.randomInt(100000, 1000000).toString();
   return otp;
 };
 
@@ -37,9 +36,10 @@ const sendOtpService = async ({ email, purpose }: sendOtp): Promise<void> => {
     );
   }
 
-  const otp = generateOtp();
+  const otp = await generateOtp();
+  const hashedOtp = await bcrypt.hash(otp, 10);
   const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-  user.otp = otp;
+  user.otp = hashedOtp;
   user.otpExpiry = otpExpiry;
   await user.save();
 

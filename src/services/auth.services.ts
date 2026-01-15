@@ -10,6 +10,7 @@ import {
   VerifyEmailRequest,
 } from "../schemas/user.schema";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 const accessTokenExpiry = env.ACCESS_TOKEN_EXPIRY as StringValue;
 const refreshTokenExpiry = env.REFRESH_TOKEN_EXPIRY as StringValue;
@@ -18,6 +19,9 @@ interface TokenPayload {
   _id: string;
 }
 
+const verifyOtp = async (otp: string, hashedOtp: string): Promise<boolean> => {
+  return await bcrypt.compare(otp, hashedOtp);
+};
 const generateAccessToken = (payload: TokenPayload): string => {
   const accessToken = jwt.sign(payload, env.ACCESS_TOKEN_SECRET, {
     expiresIn: accessTokenExpiry,
@@ -162,7 +166,8 @@ const setPasswordService = async ({
   if (user.otpExpiry < new Date()) {
     throw new ApiError(HttpStatus.BadRequest, "OTP expired.Please Try again.");
   }
-  if (user.otp !== otp) {
+  const isVerified = await verifyOtp(otp, user.otp);
+  if (!isVerified) {
     throw new ApiError(HttpStatus.BadRequest, "Invalid Otp. Please Try again.");
   }
   user.password = password;
@@ -193,7 +198,8 @@ const verifyEmailService = async ({
   if (user.otpExpiry && user.otpExpiry < new Date()) {
     throw new ApiError(HttpStatus.BadRequest, "OTP expired.Please Try again.");
   }
-  if (user.otp !== otp) {
+  const isVerified = await verifyOtp(otp, user.otp);
+  if (!isVerified) {
     throw new ApiError(HttpStatus.BadRequest, "Invalid Otp. Please Try again.");
   }
   user.isEmailVerified = true;
