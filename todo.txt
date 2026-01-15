@@ -9,3 +9,6 @@ add tags in backend, genre language and one tag field for tags except genre and 
 
 check resend otp and verify otp are doing kinda same thing and consider changing title of email whether it's for verify email or for set password
 idea-merge the resend otp and request otp into single snedOtp
+
+
+try to use the instagram ui for inspiration for the ui of music vault

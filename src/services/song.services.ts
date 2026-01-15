@@ -6,12 +6,7 @@ import Song from "../models/song.model";
 import type { Song as SongT } from "../models/song.model";
 import mongoose, { Types, SortOrder } from "mongoose";
 import ApiResponse from "../utils/ApiResponse";
-import {
-  getSongsRequest,
-  idType,
-  searchSongsRequest,
-} from "../schemas/song.schema";
-import { file } from "zod";
+import { idType } from "../schemas/song.schema";
 
 type skippedT = { title: string; reason: string }[];
 interface uploadSongResponse {
@@ -22,6 +17,17 @@ interface uploadSongResponse {
     uploadCount: number;
     skippedCount: number;
   };
+}
+interface getSongsOrSearchSongsServiceI {
+  limit: number;
+  sortByValue: string;
+  cursor?: string | undefined;
+  q?: string;
+  title?: string;
+  artist?: string;
+  genre?: string;
+  tags?: string[];
+  isSearch: Boolean;
 }
 
 const uploadSongService = async (
@@ -54,10 +60,12 @@ const uploadSongService = async (
       }
       const song = await Song.create({
         title: file.originalname,
-        duration: durationInSeconds,
+        duration: uploadResult.duration,
         publicId: uploadResult.public_id,
         fileUrl: uploadResult.secure_url,
+        playbackUrl: uploadResult.playback_url,
       });
+
       uploadedSongs.push(song);
     } catch (error) {
       if (uploadResult?.public_id) {
@@ -65,9 +73,15 @@ const uploadSongService = async (
           publicId: uploadResult.public_id,
           resource_type: "video",
         });
+        throw new ApiError(
+          HttpStatus.InternalServerError,
+          "There was a problem while uploading song"
+        );
       }
     }
   });
+
+  await Promise.allSettled(tasks);
   return {
     uploaded: uploadedSongs,
     skipped: skippedSongs,
@@ -78,11 +92,53 @@ const uploadSongService = async (
     },
   };
 };
-const getSongsService = async ({
-  sortByValue,
+const deleteSongService = async (id: idType): Promise<void> => {
+  const song = await Song.findByIdAndDelete(id);
+  if (!song) {
+    throw new ApiError(HttpStatus.NotFound, "Song not found");
+  }
+  await deleteFile({ publicId: song.publicId, resource_type: "video" });
+};
+const searchSongService = async ({
   cursor,
+  searchQuery,
   limit,
-}: getSongsRequest): Promise<{
+}): Promise<{
+  searchedSongs: SongT[];
+  nextCursor: Types.ObjectId | undefined;
+  hasMoreSongs: boolean;
+}> => {
+  let query: any = {};
+  if (cursor && !mongoose.Types.ObjectId.isValid(cursor)) {
+    cursor = undefined;
+  }
+  if (cursor) {
+    query = { $gt: cursor };
+  }
+  const searchedSongs = await Song.find({
+    title: { $regex: searchQuery, $options: "i" },
+    ...(cursor && { _id: query }),
+  }).limit(limit + 1);
+  const hasMoreSongs = searchedSongs.length > limit;
+  if (hasMoreSongs) {
+    searchedSongs.pop();
+  }
+  const nextCursor = searchedSongs.length
+    ? searchedSongs[searchedSongs.length - 1]._id
+    : undefined;
+  return { searchedSongs, nextCursor, hasMoreSongs };
+};
+const getSongsOrSearchSongsService = async ({
+  sortByValue,
+  cursor = undefined,
+  limit,
+  q,
+  title,
+  artist,
+  genre,
+  tags,
+  isSearch,
+}: getSongsOrSearchSongsServiceI): Promise<{
   songs: SongT[];
   nextCursor: Types.ObjectId | undefined;
   hasMoreSongs: boolean;
@@ -118,53 +174,9 @@ const getSongsService = async ({
   }
   return { songs, nextCursor, hasMoreSongs };
 };
-const deleteSongService = async (id: idType): Promise<void> => {
-  const song = await Song.findByIdAndDelete(id);
-  if (!song) {
-    throw new ApiError(HttpStatus.NotFound, "Song not found");
-  }
-
-  await deleteSong(song!.publicId);
-  if (!song) {
-    res
-      .status(HttpStatus.NotFound)
-      .json(new ApiError(HttpStatus.NotFound, "Song not found"));
-    return;
-  }
-};
-const searchSongService = async ({
-  cursor,
-  searchQuery,
-  limit,
-}: searchSongsRequest): Promise<{
-  searchedSongs: SongT[];
-  nextCursor: Types.ObjectId | undefined;
-  hasMoreSongs: boolean;
-}> => {
-  let query: any = {};
-  if (cursor && !mongoose.Types.ObjectId.isValid(cursor)) {
-    cursor = undefined;
-  }
-  if (cursor) {
-    query = { $gt: cursor };
-  }
-  const searchedSongs = await Song.find({
-    title: { $regex: searchQuery, $options: "i" },
-    ...(cursor && { _id: query }),
-  }).limit(limit + 1);
-  const hasMoreSongs = searchedSongs.length > limit;
-  if (hasMoreSongs) {
-    searchedSongs.pop();
-  }
-  const nextCursor = searchedSongs.length
-    ? searchedSongs[searchedSongs.length - 1]._id
-    : undefined;
-  return { searchedSongs, nextCursor, hasMoreSongs };
-};
-
 export {
   uploadSongService,
-  getSongsService,
+  getSongsOrSearchSongsService,
   deleteSongService,
   searchSongService,
 };

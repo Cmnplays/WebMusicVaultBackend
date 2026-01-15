@@ -29,25 +29,23 @@ const getSongsSchema = z.object({
   sortByValue: z.string(),
   cursor: z.string().optional(),
 });
-const searchSongsSchema = z.object({
-  limit: z.coerce.number().min(1).max(100),
-  searchQuery: z.string(),
-  cursor: z.string().optional(),
+const searchSongsSchema = getSongsSchema.extend({
+  q: z.string().optional(),
+  title: z.string().optional(),
+  artist,
+  genre: z.enum(GENRES).optional(),
+  tags: z.array(z.enum(TAGS)).optional(),
 });
 
 const idParamSchema = z.object({
   id: mongoId,
 });
 
-type getSongsRequest = z.infer<typeof getSongsSchema>;
-type searchSongsRequest = z.infer<typeof searchSongsSchema>;
 type idType = z.infer<typeof mongoId>;
 export {
   uploadSongSchema,
   getSongsSchema,
-  getSongsRequest,
   idParamSchema,
   idType,
   searchSongsSchema,
-  searchSongsRequest,
 };

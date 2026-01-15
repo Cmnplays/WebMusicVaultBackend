@@ -102,6 +102,7 @@ export interface Song {
   artist?: string;
   publicId: string;
   fileUrl: string;
+  playbackUrl: string;
   owner: Types.ObjectId;
   genre?: Genre;
   tags?: Tags[];
@@ -117,6 +118,7 @@ const songSchema = new Schema<Song>(
     artist: { type: String, default: "unknown artist", trim: true },
     publicId: { type: String, required: true },
     fileUrl: { type: String, required: true },
+    playbackUrl: { type: String, required: true },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -144,7 +146,14 @@ const songSchema = new Schema<Song>(
 songSchema.index({
   title: "text",
   artist: "text",
+  tags: "text",
+  genre: "text",
 });
 
+songSchema.set("toJSON", {
+  transform: (_doc, ret) => {
+    delete (ret as any).__v;
+  },
+});
 const Song = model<Song>("Song", songSchema);
 export default Song;

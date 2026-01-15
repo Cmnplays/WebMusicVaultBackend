@@ -143,6 +143,9 @@ userSchema.set("toJSON", {
   transform: (_doc, ret) => {
     delete ret.password;
     delete ret.refreshToken;
+    delete ret.otp;
+    delete ret.otpExpiry;
+    delete (ret as any).__v;
     return ret;
   },
 });

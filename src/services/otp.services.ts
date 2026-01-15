@@ -35,6 +35,11 @@ const sendOtpService = async ({ email, purpose }: sendOtp): Promise<void> => {
       "Please wait one minute before resending Otp"
     );
   }
+  if (user.otpExpiry && user.otpExpiry < new Date()) {
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+  }
 
   const otp = await generateOtp();
   const hashedOtp = await bcrypt.hash(otp, 10);

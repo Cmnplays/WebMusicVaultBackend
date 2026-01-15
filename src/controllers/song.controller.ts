@@ -5,9 +5,8 @@ import { HttpStatus } from "../utils/HttpStatus";
 import ApiResponse from "../utils/ApiResponse";
 import ApiError from "../utils/ApiError";
 import {
-  getSongsService,
+  getSongsOrSearchSongsService,
   uploadSongService,
-  searchSongService,
   deleteSongService,
 } from "../services/song.services";
 import {
@@ -19,26 +18,38 @@ import {
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const files = req.files as Express.Multer.File[];
-    const { message, savedSongs, alreadyExistingSongs } =
-      await uploadSongService(files);
+    const data = await uploadSongService(files);
+    let msg = "";
+    if (data.uploaded.length === 0 && data.skipped.length > 0) {
+      msg = "All songs were skipped or failed to upload.";
+    } else if (data.uploaded.length > 0 && data.skipped.length > 0) {
+      msg = `${data.uploaded.length} song(s) uploaded successfully. ${data.skipped.length} skipped.`;
+    } else if (data.uploaded.length > 0) {
+      msg = `${data.uploaded.length} song(s) uploaded successfully.`;
+    } else {
+      msg = "No files were uploaded.";
+    }
     res
       .status(HttpStatus.Created)
-      .json(
-        new ApiResponse(
-          HttpStatus.Created,
-          message,
-          savedSongs,
-          alreadyExistingSongs
-        )
-      );
+      .json(new ApiResponse(HttpStatus.Created, msg, data));
   }
 );
 
-const getSongs = asyncHandler(
+//to be updated
+const getSongsOrSearchSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const data = getSongsSchema.parse(req.query);
-    const { songs, nextCursor, hasMoreSongs } = await getSongsService(data);
+    const isSearch = Object.keys(req.query).some((key) =>
+      ["q", "tags", "genre", "author", "title"].includes(key)
+    );
+    let data;
+    if (isSearch) {
+      data = searchSongsSchema.parse(req.query);
+    } else {
+      data = getSongsSchema.parse(req.query);
+    }
 
+    const { songs, nextCursor, hasMoreSongs } =
+      await getSongsOrSearchSongsService({ ...data, isSearch });
     res.status(HttpStatus.OK).json(
       new ApiResponse(HttpStatus.OK, "Songs sent successfully", {
         songs,
@@ -48,12 +59,10 @@ const getSongs = asyncHandler(
     );
   }
 );
-
 const getSongById = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { id } = idParamSchema.parse(req.params);
     const song = await Song.findById(id);
-    //user query
     if (!song) {
       throw new ApiError(HttpStatus.NotFound, "Song not found");
     }
@@ -62,7 +71,6 @@ const getSongById = asyncHandler(
       .json(new ApiResponse(HttpStatus.OK, "Song sent successfully", song));
   }
 );
-
 const deleteSongById = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { id } = idParamSchema.parse(req.params);
@@ -72,24 +80,13 @@ const deleteSongById = asyncHandler(
       .json(new ApiResponse(HttpStatus.OK, `song deleted successfully`, null));
   }
 );
-
-const searchSong = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
-    const data = searchSongsSchema.parse(req.query);
-    const { searchedSongs, nextCursor, hasMoreSongs } = await searchSongService(
-      data
-    );
-    res.status(HttpStatus.OK).json(
-      new ApiResponse(HttpStatus.OK, "Songs sent successfully", {
-        songs: searchedSongs,
-        nextCursor,
-        hasMoreSongs,
-      })
-    );
-  }
-);
 const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
   const randomSongArray = await Song.aggregate([{ $sample: { size: 1 } }]);
+  if (!randomSongArray.length) {
+    res
+      .status(HttpStatus.NotFound)
+      .send(new ApiResponse(HttpStatus.NotFound, "No songs found", null));
+  }
   res
     .status(HttpStatus.OK)
     .send(
@@ -103,10 +100,9 @@ const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
 const updateSongById = asyncHandler(async (req: Request, res: Response) => {});
 export {
   uploadSongs,
-  getSongs,
   getSongById,
   deleteSongById,
-  searchSong,
   getRandomSong,
   updateSongById,
+  getSongsOrSearchSongs,
 };
