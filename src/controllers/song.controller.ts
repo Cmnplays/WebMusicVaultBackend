@@ -32,14 +32,14 @@ const uploadSongs = asyncHandler(
     res
       .status(HttpStatus.Created)
       .json(new ApiResponse(HttpStatus.Created, msg, data));
-  }
+  },
 );
 
 //to be updated
 const getSongsOrSearchSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const isSearch = Object.keys(req.query).some((key) =>
-      ["q", "tags", "genre", "author", "title"].includes(key)
+      ["query", "tags", "genre", "artist", "title"].includes(key),
     );
     let data;
     if (isSearch) {
@@ -47,7 +47,6 @@ const getSongsOrSearchSongs = asyncHandler(
     } else {
       data = getSongsSchema.parse(req.query);
     }
-
     const { songs, nextCursor, hasMoreSongs } =
       await getSongsOrSearchSongsService({ ...data, isSearch });
     res.status(HttpStatus.OK).json(
@@ -55,9 +54,9 @@ const getSongsOrSearchSongs = asyncHandler(
         songs,
         nextCursor,
         hasMoreSongs,
-      })
+      }),
     );
-  }
+  },
 );
 const getSongById = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -69,7 +68,7 @@ const getSongById = asyncHandler(
     res
       .status(HttpStatus.OK)
       .json(new ApiResponse(HttpStatus.OK, "Song sent successfully", song));
-  }
+  },
 );
 const deleteSongById = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -78,7 +77,7 @@ const deleteSongById = asyncHandler(
     res
       .status(HttpStatus.OK)
       .json(new ApiResponse(HttpStatus.OK, `song deleted successfully`, null));
-  }
+  },
 );
 const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
   const randomSongArray = await Song.aggregate([{ $sample: { size: 1 } }]);
@@ -93,8 +92,8 @@ const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
       new ApiResponse(
         HttpStatus.OK,
         "Successfully sent a random song",
-        randomSongArray[0]
-      )
+        randomSongArray[0],
+      ),
     );
 });
 const updateSongById = asyncHandler(async (req: Request, res: Response) => {});

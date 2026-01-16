@@ -4,8 +4,7 @@ import { UploadApiResponse, UploadApiErrorResponse } from "cloudinary";
 import { deleteFile, uploadFile } from "../config/cloudinary";
 import Song from "../models/song.model";
 import type { Song as SongT } from "../models/song.model";
-import mongoose, { Types, SortOrder } from "mongoose";
-import ApiResponse from "../utils/ApiResponse";
+import { Types } from "mongoose";
 import { idType } from "../schemas/song.schema";
 
 type skippedT = { title: string; reason: string }[];
@@ -18,11 +17,14 @@ interface uploadSongResponse {
     skippedCount: number;
   };
 }
+type sortBy = "createdAt" | "title" | "playCount" | "duration";
+type cursor = Types.ObjectId | string | number | Date;
 interface getSongsOrSearchSongsServiceI {
   limit: number;
-  sortByValue: string;
-  cursor?: string | undefined;
-  q?: string;
+  sortBy: sortBy;
+  sortOrder: "asc" | "desc";
+  cursor?: cursor;
+  query?: string;
   title?: string;
   artist?: string;
   genre?: string;
@@ -31,7 +33,7 @@ interface getSongsOrSearchSongsServiceI {
 }
 
 const uploadSongService = async (
-  files: Express.Multer.File[]
+  files: Express.Multer.File[],
 ): Promise<uploadSongResponse> => {
   const uploadedSongs: SongT[] = [];
   const skippedSongs: skippedT = [];
@@ -55,7 +57,7 @@ const uploadSongService = async (
         // Optional: rollback (though probably nothing uploaded yet)
         throw new ApiError(
           HttpStatus.InternalServerError,
-          uploadResult.error.message || "Upload failed"
+          uploadResult.error.message || "Upload failed",
         );
       }
       const song = await Song.create({
@@ -75,7 +77,7 @@ const uploadSongService = async (
         });
         throw new ApiError(
           HttpStatus.InternalServerError,
-          "There was a problem while uploading song"
+          "There was a problem while uploading song",
         );
       }
     }
@@ -92,6 +94,7 @@ const uploadSongService = async (
     },
   };
 };
+
 const deleteSongService = async (id: idType): Promise<void> => {
   const song = await Song.findByIdAndDelete(id);
   if (!song) {
@@ -99,84 +102,75 @@ const deleteSongService = async (id: idType): Promise<void> => {
   }
   await deleteFile({ publicId: song.publicId, resource_type: "video" });
 };
-const searchSongService = async ({
-  cursor,
-  searchQuery,
-  limit,
-}): Promise<{
-  searchedSongs: SongT[];
-  nextCursor: Types.ObjectId | undefined;
-  hasMoreSongs: boolean;
-}> => {
-  let query: any = {};
-  if (cursor && !mongoose.Types.ObjectId.isValid(cursor)) {
-    cursor = undefined;
-  }
-  if (cursor) {
-    query = { $gt: cursor };
-  }
-  const searchedSongs = await Song.find({
-    title: { $regex: searchQuery, $options: "i" },
-    ...(cursor && { _id: query }),
-  }).limit(limit + 1);
-  const hasMoreSongs = searchedSongs.length > limit;
-  if (hasMoreSongs) {
-    searchedSongs.pop();
-  }
-  const nextCursor = searchedSongs.length
-    ? searchedSongs[searchedSongs.length - 1]._id
-    : undefined;
-  return { searchedSongs, nextCursor, hasMoreSongs };
-};
+
 const getSongsOrSearchSongsService = async ({
-  sortByValue,
-  cursor = undefined,
+  sortBy,
+  sortOrder,
+  cursor,
   limit,
-  q,
-  title,
-  artist,
+  query,
+  // artist,
   genre,
   tags,
   isSearch,
 }: getSongsOrSearchSongsServiceI): Promise<{
   songs: SongT[];
-  nextCursor: Types.ObjectId | undefined;
+  nextCursor: cursor | undefined;
   hasMoreSongs: boolean;
 }> => {
-  let sortBy: SortOrder;
-  if (!sortByValue) {
-    sortBy = -1; // descending
-  } else if (sortByValue.toLowerCase() === "asc") {
-    sortBy = -1; //descending
+  let songs;
+  let hasMoreSongs = false;
+  let nextCursor;
+  const getQuery = cursor
+    ? sortOrder === "asc"
+      ? { [sortBy]: { $gt: cursor } }
+      : { [sortBy]: { $lt: cursor } }
+    : {};
+  const sort = { [sortBy]: sortOrder };
+  if (!isSearch) {
+    songs = await Song.find(getQuery)
+      .sort(sort)
+      .limit(limit + 1)
+      .lean();
   } else {
-    sortBy = 1; //ascending
-  }
-  const query: any = {};
-  if (cursor && !mongoose.Types.ObjectId.isValid(cursor)) {
-    cursor = undefined;
-  }
-  if (cursor) {
-    query._id = sortBy === 1 ? { $gt: cursor } : { $lt: cursor };
-  }
+    //*Plan for searching:
+    // 1.query is required , if you want to search without query just the like tags and genre frontend will handle this with filter option like we get in the daraj app filter thing or even like how i have added sorting in the app
+    // 2.after query is received the query is breaked into words, and each words will be searched in both the artist and title and the result of both will be combined and searched.
+    // 3.note since tags and genres are fixed by the admin they will remain fixed in the filter section and both in the search section
+    // 4.if user sends tags or genre then the query obj will contain tags and genre and they will be only searched in their corresponding field not like the query which is going to be searched on both the title field and the artist field
+    //5.since i switched back to regex instead of text search remove the text index from there and use normal index.
 
-  const songs = await Song.find(query)
-    .select("title duration fileUrl")
-    .limit(limit + 1)
-    .sort({ createdAt: sortBy });
-  const hasMoreSongs = songs.length > limit;
-  if (hasMoreSongs) {
+    const dbSearchQuery: {} = {
+      ...(query && {
+        $and: query.split(" ").map((word) => {
+          return {
+            $or: [
+              { title: { $regex: word, $options: "i" } },
+              { artist: { $regex: word, $options: "i" } },
+            ],
+          };
+        }),
+      }),
+      ...(tags && { tags: { $in: tags } }),
+      ...(genre && { genre }),
+      // artist: "",
+    };
+
+    songs = await Song.find(dbSearchQuery)
+      .sort(sort)
+      .limit(limit + 1)
+      .lean();
+  }
+  if (songs.length > limit) {
+    hasMoreSongs = true;
     songs.pop();
   }
-  const nextCursor = songs.length ? songs[songs.length - 1]._id : undefined;
-
-  if (!songs || songs.length === 0) {
-    throw new ApiResponse(HttpStatus.NotFound, "No songs found", null);
+  if (!hasMoreSongs || songs.length === 0) {
+    nextCursor = undefined;
+  } else {
+    nextCursor = songs[songs.length - 1][sortBy || "_id"];
   }
+
   return { songs, nextCursor, hasMoreSongs };
 };
-export {
-  uploadSongService,
-  getSongsOrSearchSongsService,
-  deleteSongService,
-  searchSongService,
-};
+export { uploadSongService, getSongsOrSearchSongsService, deleteSongService };

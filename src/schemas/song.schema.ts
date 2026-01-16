@@ -1,16 +1,15 @@
 import { z } from "zod";
 import { username } from "./user.schema";
 import { GENRES, TAGS } from "../models/song.model";
-
 const song = z.custom<Express.Multer.File>();
-const mongoId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID");
+export const mongoId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID");
 
 const artist = z
   .string()
   .trim()
   .min(1, "artist must be at least 1 characters")
   .max(30, "artist must be less than or equal to 30 characters")
-  .regex(/^[a-z0-9._]+$/, "artist can only contain lowercase letters")
+  .regex(/^[a-z0-9._ ]+$/, "artist can only contain lowercase letters")
   .transform((u) => u.toLowerCase());
 
 const uploadSongSchema = z.object({
@@ -21,18 +20,19 @@ const uploadSongSchema = z.object({
   artist: artist.optional(),
   owner: username,
   genre: z.enum(GENRES).optional(),
-  tags: z.enum(TAGS).optional(),
+  tags: z.array(z.enum(TAGS)).optional(),
 });
 
 const getSongsSchema = z.object({
-  limit: z.coerce.number().min(1).max(100),
-  sortByValue: z.string(),
-  cursor: z.string().optional(),
+  limit: z.coerce.number().min(1).max(25).default(20),
+  sortBy: z
+    .enum(["createdAt", "title", "playCount", "duration"])
+    .default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  cursor: mongoId,
 });
 const searchSongsSchema = getSongsSchema.extend({
-  q: z.string().optional(),
-  title: z.string().optional(),
-  artist,
+  query: z.string().trim().min(1).max(50).optional(),
   genre: z.enum(GENRES).optional(),
   tags: z.array(z.enum(TAGS)).optional(),
 });

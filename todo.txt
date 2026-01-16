@@ -12,3 +12,5 @@ idea-merge the resend otp and request otp into single snedOtp
 
 
 try to use the instagram ui for inspiration for the ui of music vault
+
+remember many values you are just usinig as a variable, but it should be used by declaring the corresponding env for that, so check that up
