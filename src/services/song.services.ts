@@ -4,8 +4,16 @@ import { UploadApiResponse, UploadApiErrorResponse } from "cloudinary";
 import { deleteFile, uploadFile } from "../config/cloudinary";
 import Song from "../models/song.model";
 import type { Song as SongT } from "../models/song.model";
-import { Types } from "mongoose";
-import { idType } from "../schemas/song.schema";
+import { SortOrder, Types } from "mongoose";
+import { env } from "../config/env";
+import {
+  idType,
+  songType,
+  updateSongRequest,
+  uploadSongRequest,
+} from "../schemas/song.schema";
+import { MongoServerError } from "mongodb";
+import { FilterQuery } from "mongoose";
 
 type skippedT = { title: string; reason: string }[];
 interface uploadSongResponse {
@@ -17,73 +25,107 @@ interface uploadSongResponse {
     skippedCount: number;
   };
 }
-type sortBy = "createdAt" | "title" | "playCount" | "duration";
-type cursor = Types.ObjectId | string | number | Date;
+type nonUniqueSortBy = "playCount" | "duration" | "createdAt";
+type uniqueSortBy = "title";
+type sortByT = nonUniqueSortBy | uniqueSortBy;
+type cursorT =
+  | {
+      value: string | number | Date;
+      _id?: string;
+    }
+  | undefined;
+
 interface getSongsOrSearchSongsServiceI {
   limit: number;
-  sortBy: sortBy;
+  sortBy: sortByT;
   sortOrder: "asc" | "desc";
-  cursor?: cursor;
+  cursor?: cursorT;
   query?: string;
   title?: string;
-  artist?: string;
   genre?: string;
   tags?: string[];
-  isSearch: Boolean;
+  isSearch: boolean;
 }
-
+type uploadResultReturnT =
+  | {
+      type: "skipped";
+      title: string;
+      reason: string;
+    }
+  | {
+      type: "uploaded";
+      song: SongT;
+    };
 const uploadSongService = async (
-  files: Express.Multer.File[],
+  body: uploadSongRequest,
+  files: songType,
 ): Promise<uploadSongResponse> => {
-  const uploadedSongs: SongT[] = [];
-  const skippedSongs: skippedT = [];
-  const tasks = files.map(async (file) => {
+  const tasks = files.map(async (file): Promise<uploadResultReturnT> => {
     let uploadResult: UploadApiResponse | UploadApiErrorResponse | undefined;
     try {
-      const existingSong = await Song.findOne({ title: file.originalname });
-      if (existingSong) {
-        skippedSongs.push({
-          title: existingSong.title,
-          reason: `Song is already uploaded by user ${existingSong.owner}`,
-        });
-        return;
-      }
       uploadResult = await uploadFile({
         buffer: file.buffer,
         folder: "songs",
         resource_type: "video",
       });
       if ("error" in uploadResult) {
-        // Optional: rollback (though probably nothing uploaded yet)
-        throw new ApiError(
-          HttpStatus.InternalServerError,
-          uploadResult.error.message || "Upload failed",
-        );
+        return {
+          type: "skipped",
+          title: file.originalname,
+          reason: "Unexpected error while uploading",
+        };
       }
       const song = await Song.create({
-        title: file.originalname,
+        title: body.title ? body.title : file.originalname,
         duration: uploadResult.duration,
         publicId: uploadResult.public_id,
         fileUrl: uploadResult.secure_url,
         playbackUrl: uploadResult.playback_url,
+        ...(body.owner && { owner: body.owner }),
       });
-
-      uploadedSongs.push(song);
+      return { type: "uploaded", song };
     } catch (error) {
+      env.NODE_ENV === "development" && console.error(error);
       if (uploadResult?.public_id) {
         await deleteFile({
           publicId: uploadResult.public_id,
           resource_type: "video",
         });
-        throw new ApiError(
-          HttpStatus.InternalServerError,
-          "There was a problem while uploading song",
-        );
+        if (error instanceof MongoServerError && error.code === 11000) {
+          //11000 is code for duplicate document returned by mongoose itslef
+          return {
+            type: "skipped",
+            title: file.originalname,
+            reason: "Song is already uploaded.", //this is for race conditions when 2 users upload same song and this helps to reduce one database fetching for exisitng user check and this works when unique is true in the fieldname in the schema
+          };
+        }
+        return {
+          type: "skipped",
+          title: file.originalname,
+          reason: "Unexpected error while uploading",
+        };
       }
+      return {
+        type: "skipped",
+        title: file.originalname,
+        reason: "Unexpected error while uploading",
+      };
     }
   });
 
-  await Promise.allSettled(tasks);
+  const results = await Promise.allSettled(tasks);
+  const uploadedSongs: SongT[] = [];
+  const skippedSongs: skippedT = [];
+  console.log(results);
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      if (r.value.type === "uploaded") {
+        uploadedSongs.push(r.value.song);
+      } else {
+        skippedSongs.push({ title: r.value.title, reason: r.value.reason });
+      }
+    }
+  }
   return {
     uploaded: uploadedSongs,
     skipped: skippedSongs,
@@ -103,57 +145,76 @@ const deleteSongService = async (id: idType): Promise<void> => {
   await deleteFile({ publicId: song.publicId, resource_type: "video" });
 };
 
+//need to be fixed tommorow will do
+//*for non unique fields need to use the _id as secondary cusror for exactly getting the documente
 const getSongsOrSearchSongsService = async ({
   sortBy,
   sortOrder,
   cursor,
   limit,
   query,
-  // artist,
   genre,
   tags,
   isSearch,
 }: getSongsOrSearchSongsServiceI): Promise<{
   songs: SongT[];
-  nextCursor: cursor | undefined;
+  nextCursor: cursorT;
   hasMoreSongs: boolean;
 }> => {
   let songs;
   let hasMoreSongs = false;
-  let nextCursor;
-  const getQuery = cursor
+  let nextCursor: cursorT;
+  const cursorQuery: FilterQuery<SongT> = cursor
     ? sortOrder === "asc"
-      ? { [sortBy]: { $gt: cursor } }
-      : { [sortBy]: { $lt: cursor } }
+      ? {
+          $or: [
+            {
+              [sortBy]: { $gt: cursor.value },
+            },
+            {
+              [sortBy]: cursor.value,
+              _id: { $gt: new Types.ObjectId(cursor._id) },
+            },
+          ],
+        }
+      : {
+          $or: [
+            {
+              [sortBy]: { $lt: cursor.value },
+            },
+            {
+              [sortBy]: cursor.value,
+              _id: { $lt: new Types.ObjectId(cursor._id) },
+            },
+          ],
+        }
     : {};
-  const sort = { [sortBy]: sortOrder };
+  const sort: Record<string, SortOrder> = {
+    [sortBy]: sortOrder === "asc" ? 1 : -1,
+    _id: sortOrder === "asc" ? 1 : -1,
+  };
   if (!isSearch) {
-    songs = await Song.find(getQuery)
+    songs = await Song.find(cursorQuery)
       .sort(sort)
       .limit(limit + 1)
       .lean();
   } else {
-    //*Plan for searching:
-    // 1.query is required , if you want to search without query just the like tags and genre frontend will handle this with filter option like we get in the daraj app filter thing or even like how i have added sorting in the app
-    // 2.after query is received the query is breaked into words, and each words will be searched in both the artist and title and the result of both will be combined and searched.
-    // 3.note since tags and genres are fixed by the admin they will remain fixed in the filter section and both in the search section
-    // 4.if user sends tags or genre then the query obj will contain tags and genre and they will be only searched in their corresponding field not like the query which is going to be searched on both the title field and the artist field
-    //5.since i switched back to regex instead of text search remove the text index from there and use normal index.
-
-    const dbSearchQuery: {} = {
+    const dbSearchQuery: FilterQuery<SongT> = {
       ...(query && {
-        $and: query.split(" ").map((word) => {
-          return {
-            $or: [
-              { title: { $regex: word, $options: "i" } },
-              { artist: { $regex: word, $options: "i" } },
-            ],
-          };
-        }),
+        $and: [
+          ...query.split(" ").map((word) => {
+            return {
+              $or: [
+                { title: { $regex: word, $options: "i" } },
+                { artist: { $regex: word, $options: "i" } },
+              ],
+            };
+          }),
+          cursorQuery,
+        ],
       }),
       ...(tags && { tags: { $in: tags } }),
       ...(genre && { genre }),
-      // artist: "",
     };
 
     songs = await Song.find(dbSearchQuery)
@@ -168,9 +229,26 @@ const getSongsOrSearchSongsService = async ({
   if (!hasMoreSongs || songs.length === 0) {
     nextCursor = undefined;
   } else {
-    nextCursor = songs[songs.length - 1][sortBy || "_id"];
+    const lastSong = songs[songs.length - 1];
+    nextCursor = {
+      value: lastSong[sortBy],
+      _id: lastSong._id.toString(),
+    };
   }
 
   return { songs, nextCursor, hasMoreSongs };
 };
-export { uploadSongService, getSongsOrSearchSongsService, deleteSongService };
+
+// const updateSongFields = async ({
+//   songId,
+//   title,
+//   artist,
+//   tags,
+//   genre,
+// }: updateSongRequest): Promise<SongT> => {};
+export {
+  uploadSongService,
+  getSongsOrSearchSongsService,
+  deleteSongService,
+  // updateSongFields,
+};

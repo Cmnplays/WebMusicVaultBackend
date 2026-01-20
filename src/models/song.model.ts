@@ -113,9 +113,9 @@ export interface Song {
 
 const songSchema = new Schema<Song>(
   {
-    title: { type: String, required: true, trim: true },
+    title: { type: String, required: true, trim: true, unique: true },
     duration: { type: Number, required: true, min: 1 },
-    artist: { type: String, default: "unknown artist", trim: true },
+    artist: { type: String, default: "unknown", trim: true },
     publicId: { type: String, required: true },
     fileUrl: { type: String, required: true },
     playbackUrl: { type: String, required: true },
@@ -140,7 +140,7 @@ const songSchema = new Schema<Song>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 songSchema.index({

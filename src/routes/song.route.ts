@@ -7,8 +7,9 @@ import {
   getSongById,
   deleteSongById,
   getRandomSong,
-  updateSongById,
+  updateAllFieldsOfSong,
   getSongsOrSearchSongs,
+  getAllSongOfArtist,
 } from "../controllers/song.controller";
 import { uploadSongSchema } from "../schemas/song.schema";
 import { validate } from "../middlewares/validate.middleware";
@@ -18,7 +19,7 @@ router.post(
   "/",
   upload.array("songs", 3),
   validate(uploadSongSchema),
-  uploadSongs
+  uploadSongs,
 );
 //Get songs for main page and for searching songs
 router.get("/", getSongsOrSearchSongs);
@@ -26,10 +27,14 @@ router.get("/", getSongsOrSearchSongs);
 router.get("/:id", getSongById);
 //Get random songs for shuffle play
 router.get("/random", getRandomSong);
-//Update song by id
-router.put("/:id", updateSongById);
 //Delete song by id
 router.delete("/:id", deleteSongById);
+//Get all songs of a particular artist
+router.get("/artist/:artist", getAllSongOfArtist);
+//Update song by id
+router.patch("/:id", updateAllFieldsOfSong);
+
+// Note: Use a PATCH /songs/:id route to allow partial updates to a song’s details like title, artist, genre, and tags. Only the owner of the song can perform these edits; all other users should be restricted. Validate inputs and merge updates without overwriting the entire document.
 
 //route for updating song detail below goes there
 export default router;

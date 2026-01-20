@@ -14,3 +14,12 @@ idea-merge the resend otp and request otp into single snedOtp
 try to use the instagram ui for inspiration for the ui of music vault
 
 remember many values you are just usinig as a variable, but it should be used by declaring the corresponding env for that, so check that up
+
+tommorow write some more controllers of the song like
+
+use spotify reference for the frontend thing 
+
+
+
+fixed songs services, but now need to fix the songs schema to behave how the song services want
+

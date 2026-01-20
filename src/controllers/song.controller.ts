@@ -8,47 +8,52 @@ import {
   getSongsOrSearchSongsService,
   uploadSongService,
   deleteSongService,
+  updateSongFields,
 } from "../services/song.services";
 import {
   idParamSchema,
   getSongsSchema,
   searchSongsSchema,
+  uploadSongRequest,
+  songSchema,
+  updateSchema,
 } from "../schemas/song.schema";
 
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const files = req.files as Express.Multer.File[];
-    const data = await uploadSongService(files);
+    const body: uploadSongRequest = req.body;
+    const files = songSchema.parse(req.files);
+
+    const uploadRes = await uploadSongService(body, files);
     let msg = "";
-    if (data.uploaded.length === 0 && data.skipped.length > 0) {
+    if (uploadRes.uploaded.length === 0 && uploadRes.skipped.length > 0) {
       msg = "All songs were skipped or failed to upload.";
-    } else if (data.uploaded.length > 0 && data.skipped.length > 0) {
-      msg = `${data.uploaded.length} song(s) uploaded successfully. ${data.skipped.length} skipped.`;
-    } else if (data.uploaded.length > 0) {
-      msg = `${data.uploaded.length} song(s) uploaded successfully.`;
+    } else if (uploadRes.uploaded.length > 0 && uploadRes.skipped.length > 0) {
+      msg = `${uploadRes.uploaded.length} song(s) uploaded successfully. ${uploadRes.skipped.length} skipped.`;
+    } else if (uploadRes.uploaded.length > 0) {
+      msg = `${uploadRes.uploaded.length} song(s) uploaded successfully.`;
     } else {
       msg = "No files were uploaded.";
     }
     res
       .status(HttpStatus.Created)
-      .json(new ApiResponse(HttpStatus.Created, msg, data));
+      .json(new ApiResponse(HttpStatus.Created, msg, uploadRes));
   },
 );
 
-//to be updated
 const getSongsOrSearchSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const isSearch = Object.keys(req.query).some((key) =>
       ["query", "tags", "genre", "artist", "title"].includes(key),
     );
-    let data;
+    let parsedQuery;
     if (isSearch) {
-      data = searchSongsSchema.parse(req.query);
+      parsedQuery = searchSongsSchema.parse(req.query);
     } else {
-      data = getSongsSchema.parse(req.query);
+      parsedQuery = getSongsSchema.parse(req.query);
     }
     const { songs, nextCursor, hasMoreSongs } =
-      await getSongsOrSearchSongsService({ ...data, isSearch });
+      await getSongsOrSearchSongsService({ ...parsedQuery, isSearch });
     res.status(HttpStatus.OK).json(
       new ApiResponse(HttpStatus.OK, "Songs sent successfully", {
         songs,
@@ -79,6 +84,7 @@ const deleteSongById = asyncHandler(
       .json(new ApiResponse(HttpStatus.OK, `song deleted successfully`, null));
   },
 );
+//this must be furthur extend to give random songs as per the given genre, tag , author or artist
 const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
   const randomSongArray = await Song.aggregate([{ $sample: { size: 1 } }]);
   if (!randomSongArray.length) {
@@ -96,12 +102,33 @@ const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
       ),
     );
 });
-const updateSongById = asyncHandler(async (req: Request, res: Response) => {});
+
+const updateAllFieldsOfSong = asyncHandler(
+  async (req: Request, res: Response) => {
+    const data = updateSchema.parse(req.body);
+    const updatedSong = await updateSongFields(data);
+
+    res
+      .status(HttpStatus.OK)
+      .send(
+        new ApiResponse(
+          HttpStatus.OK,
+          "Successfully sent a random song",
+          updatedSong,
+        ),
+      );
+  },
+);
+
+const getAllSongOfArtist = asyncHandler(
+  async (req: Request, res: Response) => {},
+);
 export {
   uploadSongs,
   getSongById,
   deleteSongById,
   getRandomSong,
-  updateSongById,
+  updateAllFieldsOfSong,
   getSongsOrSearchSongs,
+  getAllSongOfArtist,
 };
