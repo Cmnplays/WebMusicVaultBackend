@@ -12,143 +12,72 @@ const artist = z
   .regex(/^[a-zA-Z0-9._ ]+$/, "artist can only contain lowercase letters")
   .transform((u) => u.toLowerCase());
 
+const title = z.string().optional();
+const genre = z.enum(GENRES).optional();
+const tags = z.array(z.enum(TAGS)).optional();
+
 const uploadSongSchema = z.object({
   body: z.object({
-    title: z.string().optional(),
+    title,
     artist: artist.optional(),
     owner: username,
-    genre: z.enum(GENRES).optional(),
-    tags: z.array(z.enum(TAGS)).optional(),
+    genre,
+    tags,
   }),
 });
 
-const baseGetSongsSchema = z.object({
+const basePaginationSchema = z.object({
   limit: z.coerce.number().min(1).max(25).default(20),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  sortBy: z
+    .enum(["createdAt", "title", "duration", "playCount"])
+    .default("createdAt"),
+  cursor: z
+    .object({
+      value: z.union([z.string(), z.number(), z.date()]),
+      _id: mongoId.optional(),
+    })
+    .optional(),
 });
-const checkSortParams = (input: unknown) => {
+
+// //for non unique need id as secondary breaker
+// const nonUniqueCursorSchema = z.object({
+//   value: z.union([z.number(), z.date()]),
+//   _id: mongoId,
+// });
+
+// //for title which is unique
+// const uniqueCursorSchema = z.object({
+//   value: z.string().min(1),
+// });
+
+const searchFieldsSchema = z.object({
+  query: z.string().trim().min(1).optional(),
+  genre,
+  tags,
+});
+
+const cursorPreprocess = (input: unknown) => {
   if (!input || typeof input !== "object") {
-    return {
-      sortBy: "createdAt",
-      cursor: undefined,
-    };
+    return {};
   }
   const obj = input as Record<string, unknown>;
-  type sortByT = "createdAt" | "title" | "duration" | "playCount";
-  const sortBy: sortByT =
-    typeof obj.sortBy === "string" ? (obj.sortBy as any) : "createdAt";
-
-  let cursor = obj.cursor;
-  if (cursor === "" || cursor === null || cursor === "undefined") {
-    cursor = undefined;
-  }
-  //for unique field
-  if (sortBy === "title") {
-    if (typeof cursor === "string") {
-      const trimmed = cursor.trim();
-      cursor = trimmed ? trimmed : undefined;
-    } else {
-      cursor = undefined;
+  if (typeof obj.cursor === "string") {
+    try {
+      obj.cursor = JSON.parse(obj.cursor);
+    } catch {
+      obj.cursor = undefined;
     }
   }
-  //for non-unique field
-  if (
-    sortBy === "createdAt" ||
-    sortBy === "duration" ||
-    sortBy === "playCount"
-  ) {
-    if (typeof cursor === "string") {
-      try {
-        const parsed = JSON.parse(cursor);
-        if (parsed && typeof parsed === "object" && "value" in parsed) {
-          cursor = parsed;
-        } else {
-          cursor = undefined;
-        }
-      } catch {
-        cursor = undefined;
-      }
-    }
-  }
-  console.log({
-    ...obj,
-    sortBy,
-    cursor,
-  });
-  return {
-    ...obj,
-    sortBy,
-    cursor,
-  };
-};
-//unique field
-const titleExtend = {
-  sortBy: z.literal("title"),
-  cursor: z
-    .object({
-      value: z.coerce.date(),
-    })
-    .optional(),
-};
-//Non unique fields
-const createdAtExtend = {
-  sortBy: z.literal("createdAt"),
-  cursor: z
-    .object({
-      value: z.coerce.date(),
-      _id: mongoId,
-    })
-    .optional(),
-};
-const durationExtend = {
-  sortBy: z.literal("duration"),
-  cursor: z
-    .object({
-      value: z.coerce.number(),
-      _id: mongoId,
-    })
-    .optional(),
-};
-const playCountExtend = {
-  sortBy: z.literal("playCount"),
-  cursor: z
-    .object({
-      value: z.coerce.number(),
-      _id: mongoId,
-    })
-    .optional(),
+  return obj;
 };
 
-const getSongsSchema = z.preprocess(
-  (input) => {
-    return checkSortParams(input);
-  },
-  z.discriminatedUnion("sortBy", [
-    baseGetSongsSchema.extend(createdAtExtend),
-    baseGetSongsSchema.extend(titleExtend),
-    baseGetSongsSchema.extend(durationExtend),
-    baseGetSongsSchema.extend(playCountExtend),
-  ]),
-);
-
-const baseSearchSongsSchema = baseGetSongsSchema.extend({
-  query: z.string().trim().min(1).max(50).optional(),
-  genre: z.enum(GENRES).optional(),
-  tags: z.array(z.enum(TAGS)).optional(),
-});
-
+const getSongsSchema = z.preprocess(cursorPreprocess, basePaginationSchema);
 const searchSongsSchema = z.preprocess(
-  (input) => {
-    console.log(input);
-    return checkSortParams(input);
-  },
-  z.discriminatedUnion("sortBy", [
-    baseSearchSongsSchema.extend(createdAtExtend),
-    baseSearchSongsSchema.extend(titleExtend),
-    baseSearchSongsSchema.extend(durationExtend),
-    baseSearchSongsSchema.extend(playCountExtend),
-  ]),
+  cursorPreprocess,
+  basePaginationSchema.extend(searchFieldsSchema.shape),
 );
+
 const idParamSchema = z.object({
   id: mongoId,
 });
@@ -157,31 +86,38 @@ const songSchema = z
   .min(1, "At least 1 song is required")
   .max(3, "At most 3 songs are allowed");
 
-const editableSongFields = z.object({
-  title: z.string().trim().min(1).max(100),
-  artist: artist.optional(),
-  genre: z.enum(GENRES).optional(),
-  tags: z.array(z.enum(TAGS)).optional(),
+const getRandomSongSchema = z.object({
+  genre,
+  tags,
 });
 
-const updateSchema = z.object({ songId: mongoId }).extend(
-  editableSongFields.partial().refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field must be updated",
-  }),
-);
-type updateSongRequest = z.infer<typeof updateSchema>;
+const updateSongSchema = z.object({
+  songId: mongoId,
+  title,
+  artist: artist.optional(),
+  genre,
+  tags,
+});
+
+type updateSongRequest = z.infer<typeof updateSongSchema>;
 type uploadSongRequest = z.infer<typeof uploadSongSchema>["body"];
 type songType = z.infer<typeof songSchema>;
 type idType = z.infer<typeof mongoId>;
+type parsedSongsQuery = z.infer<typeof getSongsSchema> &
+  Partial<z.infer<typeof searchSongsSchema>>;
+type getRandomSongRequest = z.infer<typeof getRandomSongSchema>;
 export {
   uploadSongSchema,
-  getSongsSchema,
   idParamSchema,
   idType,
-  searchSongsSchema,
   uploadSongRequest,
   songSchema,
   songType,
-  updateSchema,
+  getSongsSchema,
+  searchSongsSchema,
+  updateSongSchema,
   updateSongRequest,
+  parsedSongsQuery,
+  getRandomSongSchema,
+  getRandomSongRequest,
 };

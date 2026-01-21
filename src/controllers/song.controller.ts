@@ -9,6 +9,7 @@ import {
   uploadSongService,
   deleteSongService,
   updateSongFields,
+  getRandomSongService,
 } from "../services/song.services";
 import {
   idParamSchema,
@@ -16,7 +17,11 @@ import {
   searchSongsSchema,
   uploadSongRequest,
   songSchema,
-  updateSchema,
+  updateSongSchema,
+  updateSongRequest,
+  parsedSongsQuery,
+  getRandomSongSchema,
+  getRandomSongRequest,
 } from "../schemas/song.schema";
 
 const uploadSongs = asyncHandler(
@@ -46,14 +51,25 @@ const getSongsOrSearchSongs = asyncHandler(
     const isSearch = Object.keys(req.query).some((key) =>
       ["query", "tags", "genre", "artist", "title"].includes(key),
     );
-    let parsedQuery;
-    if (isSearch) {
-      parsedQuery = searchSongsSchema.parse(req.query);
-    } else {
-      parsedQuery = getSongsSchema.parse(req.query);
-    }
+
+    const parsedQuery: parsedSongsQuery = isSearch
+      ? searchSongsSchema.parse(req.query)
+      : getSongsSchema.parse(req.query);
+
+    const { limit, sortBy, sortOrder, cursor, query, genre, tags } =
+      parsedQuery;
+
     const { songs, nextCursor, hasMoreSongs } =
-      await getSongsOrSearchSongsService({ ...parsedQuery, isSearch });
+      await getSongsOrSearchSongsService({
+        limit,
+        sortBy,
+        sortOrder,
+        cursor,
+        query,
+        genre,
+        tags,
+        isSearch,
+      });
     res.status(HttpStatus.OK).json(
       new ApiResponse(HttpStatus.OK, "Songs sent successfully", {
         songs,
@@ -85,12 +101,14 @@ const deleteSongById = asyncHandler(
   },
 );
 //this must be furthur extend to give random songs as per the given genre, tag , author or artist
-const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
-  const randomSongArray = await Song.aggregate([{ $sample: { size: 1 } }]);
-  if (!randomSongArray.length) {
+const getRandomSong = asyncHandler(async (req: Request, res: Response) => {
+  const query: getRandomSongRequest = getRandomSongSchema.parse(req.query);
+  const randomSong = await getRandomSongService(query);
+  if (!randomSong) {
     res
-      .status(HttpStatus.NotFound)
-      .send(new ApiResponse(HttpStatus.NotFound, "No songs found", null));
+      .status(HttpStatus.OK)
+      .send(new ApiResponse(HttpStatus.OK, "No songs found", null));
+    return;
   }
   res
     .status(HttpStatus.OK)
@@ -98,22 +116,21 @@ const getRandomSong = asyncHandler(async (_req: Request, res: Response) => {
       new ApiResponse(
         HttpStatus.OK,
         "Successfully sent a random song",
-        randomSongArray[0],
+        randomSong,
       ),
     );
 });
 
 const updateAllFieldsOfSong = asyncHandler(
   async (req: Request, res: Response) => {
-    const data = updateSchema.parse(req.body);
+    const data: updateSongRequest = updateSongSchema.parse(req.body);
     const updatedSong = await updateSongFields(data);
-
     res
       .status(HttpStatus.OK)
       .send(
         new ApiResponse(
           HttpStatus.OK,
-          "Successfully sent a random song",
+          "Song updated successfully",
           updatedSong,
         ),
       );
