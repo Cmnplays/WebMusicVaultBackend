@@ -43,17 +43,6 @@ const basePaginationSchema = z.object({
     .optional(),
 });
 
-// //for non unique need id as secondary breaker
-// const nonUniqueCursorSchema = z.object({
-//   value: z.union([z.number(), z.date()]),
-//   _id: mongoId,
-// });
-
-// //for title which is unique
-// const uniqueCursorSchema = z.object({
-//   value: z.string().min(1),
-// });
-
 const searchFieldsSchema = z.object({
   query: z.string().trim().min(1).optional(),
   genre,
@@ -89,10 +78,27 @@ const songSchema = z
   .min(1, "At least 1 song is required")
   .max(3, "At most 3 songs are allowed");
 
-const getRandomSongSchema = z.object({
-  genre,
-  tags,
-});
+const getRandomSongSchema = z.preprocess(
+  (data: any) => {
+    if (!data || typeof data !== "object") {
+      return {};
+    }
+    const d = data as Record<string, unknown>;
+    const parsedData = {
+      ...d,
+      tags: d.tags
+        ? Array.isArray(data.tags)
+          ? data.tags
+          : [data.tags]
+        : undefined,
+    };
+    return parsedData;
+  },
+  z.object({
+    genre,
+    tags,
+  }),
+);
 
 const updateSongSchema = z.object({
   params: z.object({ id: mongoId }),

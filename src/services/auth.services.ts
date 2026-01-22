@@ -16,10 +16,6 @@ import bcrypt from "bcryptjs";
 const accessTokenExpiry = env.ACCESS_TOKEN_EXPIRY as StringValue;
 const refreshTokenExpiry = env.REFRESH_TOKEN_EXPIRY as StringValue;
 
-interface TokenPayload {
-  _id: string;
-}
-
 const verifyOtp = async (otp: string, hashedOtp: string): Promise<boolean> => {
   return await bcrypt.compare(otp, hashedOtp);
 };

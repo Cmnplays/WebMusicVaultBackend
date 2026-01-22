@@ -10,6 +10,6 @@
     "skipLibCheck": true,
     "types": ["node"] // ✅ Add this line here
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules"]
 }

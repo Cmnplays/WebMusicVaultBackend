@@ -9,7 +9,7 @@ import {
   getSongsOrSearchSongsService,
   uploadSongService,
   deleteSongService,
-  updateSongFields,
+  updateSongFieldsService,
   getRandomSongService,
 } from "../services/song.services";
 import {
@@ -134,7 +134,7 @@ const updateAllFieldsOfSong = asyncHandler(
       throw new ApiError(HttpStatus.BadRequest, "Invalid song id");
     }
     const data: updateSongRequest = req.body;
-    const updatedSong = await updateSongFields({ ...data, songId });
+    const updatedSong = await updateSongFieldsService({ ...data, songId });
     res
       .status(HttpStatus.OK)
       .send(

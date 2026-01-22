@@ -299,7 +299,7 @@ const getRandomSongService = async (
 };
 
 //*Here after, the song update services will come. Think about flow then start to code furthur. Although the udpateSongFields schema is done, try reviewing it as per your logic
-const updateSongFields = async ({
+const updateSongFieldsService = async ({
   songId,
   title,
   artist,
@@ -312,9 +312,17 @@ const updateSongFields = async ({
       $set: {
         ...(title && { title }),
         ...(artist && { artist }),
-        ...(tags && { tags }),
         ...(genre && { genre }),
       },
+      ...(tags
+        ? {
+            $addToSet: {
+              tags: { $each: tags },
+            },
+          }
+        : {
+            tags: [],
+          }),
     },
     {
       new: true,
@@ -329,5 +337,5 @@ export {
   getSongsOrSearchSongsService,
   deleteSongService,
   getRandomSongService,
-  updateSongFields,
+  updateSongFieldsService,
 };
