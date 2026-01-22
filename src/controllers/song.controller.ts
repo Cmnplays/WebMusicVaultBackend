@@ -4,6 +4,7 @@ import Song from "../models/song.model";
 import { HttpStatus } from "../utils/HttpStatus";
 import ApiResponse from "../utils/ApiResponse";
 import ApiError from "../utils/ApiError";
+import type { UserI } from "../models/user.model";
 import {
   getSongsOrSearchSongsService,
   uploadSongService,
@@ -23,13 +24,18 @@ import {
   getRandomSongSchema,
   getRandomSongRequest,
 } from "../schemas/song.schema";
+import { accessSync } from "fs";
 
 const uploadSongs = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const body: uploadSongRequest = req.body;
     const files = songSchema.parse(req.files);
 
-    const uploadRes = await uploadSongService(body, files);
+    const uploadRes = await uploadSongService(
+      body,
+      files,
+      (req.user as UserI)._id,
+    );
     let msg = "";
     if (uploadRes.uploaded.length === 0 && uploadRes.skipped.length > 0) {
       msg = "All songs were skipped or failed to upload.";
@@ -123,8 +129,12 @@ const getRandomSong = asyncHandler(async (req: Request, res: Response) => {
 
 const updateAllFieldsOfSong = asyncHandler(
   async (req: Request, res: Response) => {
-    const data: updateSongRequest = updateSongSchema.parse(req.body);
-    const updatedSong = await updateSongFields(data);
+    const songId = req.params.id;
+    if (!songId) {
+      throw new ApiError(HttpStatus.BadRequest, "Invalid song id");
+    }
+    const data: updateSongRequest = req.body;
+    const updatedSong = await updateSongFields({ ...data, songId });
     res
       .status(HttpStatus.OK)
       .send(
@@ -137,6 +147,9 @@ const updateAllFieldsOfSong = asyncHandler(
   },
 );
 
+const increamentPlayCount = asyncHandler(
+  async (req: Request, res: Response) => {},
+);
 const getAllSongOfArtist = asyncHandler(
   async (req: Request, res: Response) => {},
 );
@@ -148,4 +161,5 @@ export {
   updateAllFieldsOfSong,
   getSongsOrSearchSongs,
   getAllSongOfArtist,
+  increamentPlayCount,
 };

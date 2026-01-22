@@ -10,8 +10,9 @@ import {
   updateAllFieldsOfSong,
   getSongsOrSearchSongs,
   getAllSongOfArtist,
+  increamentPlayCount,
 } from "../controllers/song.controller";
-import { uploadSongSchema } from "../schemas/song.schema";
+import { updateSongSchema, uploadSongSchema } from "../schemas/song.schema";
 import { validate } from "../middlewares/validate.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
 
@@ -34,7 +35,13 @@ router.get("/:id", validate, getSongById);
 //Delete song by id
 router.delete("/:id", authMiddleware, deleteSongById);
 //Update song by id
-router.patch("/:id", authMiddleware, updateAllFieldsOfSong);
+router.patch(
+  "/:id",
+  authMiddleware,
+  validate(updateSongSchema),
+  updateAllFieldsOfSong,
+);
+router.patch("/:id/incrplaycount", increamentPlayCount);
 
 // Note: Use a PATCH /songs/:id route to allow partial updates to a song’s details like title, artist, genre, and tags. Only the owner of the song can perform these edits; all other users should be restricted. Validate inputs and merge updates without overwriting the entire document.
 

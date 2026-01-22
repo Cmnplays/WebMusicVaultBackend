@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError";
 import { env } from "../config/env";
 import type { StringValue } from "ms";
 import User from "../models/user.model";
+import type { UserI } from "../models/user.model";
 import {
   LoginRequest,
   RegisterRequest,
@@ -30,7 +31,7 @@ const generateAccessToken = (payload: TokenPayload): string => {
   if (!accessToken) {
     throw new ApiError(
       HttpStatus.InternalServerError,
-      "Failed to generate access token"
+      "Failed to generate access token",
     );
   }
   return accessToken;
@@ -42,7 +43,7 @@ const generateRefreshToken = (payload: TokenPayload): string => {
   if (!refreshToken) {
     throw new ApiError(
       HttpStatus.InternalServerError,
-      "Failed to generate refresh token"
+      "Failed to generate refresh token",
     );
   }
   return refreshToken;
@@ -56,13 +57,13 @@ const registerService = async ({
 }: RegisterRequest): Promise<{
   accessToken: string;
   refreshToken: string;
-  user: User;
+  user: UserI;
 }> => {
   const existingEmailUser = await User.findOne({ email });
   if (existingEmailUser) {
     throw new ApiError(
       HttpStatus.Conflict,
-      `User with email ${email} is already registered`
+      `User with email ${email} is already registered`,
     );
   }
 
@@ -70,10 +71,10 @@ const registerService = async ({
   if (existingUsernameUser) {
     throw new ApiError(
       HttpStatus.Conflict,
-      `Username ${username} is already taken`
+      `Username ${username} is already taken`,
     );
   }
-  const user: User = await User.create({
+  const user: UserI = await User.create({
     email,
     username,
     displayName,
@@ -83,7 +84,7 @@ const registerService = async ({
   if (!user) {
     throw new ApiError(
       HttpStatus.InternalServerError,
-      "Error while registering user"
+      "Error while registering user",
     );
   }
   //*Method-1
@@ -106,23 +107,23 @@ const loginService = async ({
 }: LoginRequest): Promise<{
   accessToken: string;
   refreshToken: string;
-  user: User;
+  user: UserI;
 }> => {
-  const user: User | null = await User.findOne({
+  const user: UserI | null = await User.findOne({
     $or: [{ email: identifier }, { username: identifier }],
   });
 
   if (!user) {
     throw new ApiError(
       HttpStatus.Unauthorized,
-      "Invalid email/username or password"
+      "Invalid email/username or password",
     );
   }
 
   if (!user.authProviders!.includes("local") && user.password == undefined) {
     throw new ApiError(
       HttpStatus.Forbidden,
-      `This account was registered with google. Please log in using google or set a password to enable password login.`
+      `This account was registered with google. Please log in using google or set a password to enable password login.`,
     );
   }
 
@@ -130,7 +131,7 @@ const loginService = async ({
   if (!isPasswordCorrect) {
     throw new ApiError(
       HttpStatus.Unauthorized,
-      "Invalid email/username or password"
+      "Invalid email/username or password",
     );
   }
   const { accessToken, refreshToken } = await user.generateAuthTokens();
@@ -143,7 +144,7 @@ const setPasswordService = async ({
 }: SetPasswordRequest): Promise<{
   accessToken: string;
   refreshToken: string;
-  user: User;
+  user: UserI;
 }> => {
   const user = await User.findOne({
     $or: [{ email: identifier }, { username: identifier }],
@@ -151,7 +152,7 @@ const setPasswordService = async ({
   if (!user) {
     throw new ApiError(
       HttpStatus.NotFound,
-      `User ${identifier} is not registered`
+      `User ${identifier} is not registered`,
     );
   }
   if (user.password) {
@@ -160,7 +161,7 @@ const setPasswordService = async ({
   if (!user.otp || !user.otpExpiry) {
     throw new ApiError(
       HttpStatus.BadRequest,
-      "No OTP found. Please request a new one."
+      "No OTP found. Please request a new one.",
     );
   }
   if (user.otpExpiry < new Date()) {
@@ -186,13 +187,13 @@ const verifyEmailService = async ({
   if (!user) {
     throw new ApiError(
       HttpStatus.NotFound,
-      `User with email ${email} is not registered`
+      `User with email ${email} is not registered`,
     );
   }
   if (!user.otp || !user.otpExpiry) {
     throw new ApiError(
       HttpStatus.BadRequest,
-      "No OTP found. Please request a new one."
+      "No OTP found. Please request a new one.",
     );
   }
   if (user.otpExpiry && user.otpExpiry < new Date()) {
@@ -208,7 +209,7 @@ const verifyEmailService = async ({
   await user.save();
 };
 const refreshAccessTokenService = async (
-  refreshToken: string
+  refreshToken: string,
 ): Promise<{
   accessToken: string;
   newRefreshToken: string;
@@ -218,7 +219,7 @@ const refreshAccessTokenService = async (
   }
   const decoded = jwt.verify(
     refreshToken,
-    env.REFRESH_TOKEN_SECRET
+    env.REFRESH_TOKEN_SECRET,
   ) as JwtPayload;
   const user = await User.findById(decoded._id);
   if (!user) {

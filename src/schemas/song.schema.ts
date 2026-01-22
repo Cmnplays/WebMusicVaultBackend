@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { username } from "./user.schema";
 import { GENRES, TAGS } from "../models/song.model";
 
 export const mongoId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID");
@@ -7,12 +6,17 @@ export const mongoId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID");
 const artist = z
   .string()
   .trim()
-  .min(1, "artist must be at least 1 characters")
+  .min(1, "artist must be at least of 1 characters")
   .max(30, "artist must be less than or equal to 30 characters")
   .regex(/^[a-zA-Z0-9._ ]+$/, "artist can only contain lowercase letters")
   .transform((u) => u.toLowerCase());
 
-const title = z.string().optional();
+const title = z
+  .string()
+  .trim()
+  .min(1, "artist must be at least of 1 characters")
+  .max(125, "Lenght of title must be less than or equal to 125 characters")
+  .optional();
 const genre = z.enum(GENRES).optional();
 const tags = z.array(z.enum(TAGS)).optional();
 
@@ -20,7 +24,6 @@ const uploadSongSchema = z.object({
   body: z.object({
     title,
     artist: artist.optional(),
-    owner: username,
     genre,
     tags,
   }),
@@ -92,15 +95,19 @@ const getRandomSongSchema = z.object({
 });
 
 const updateSongSchema = z.object({
-  songId: mongoId,
-  title,
-  artist: artist.optional(),
-  genre,
-  tags,
+  params: z.object({ id: mongoId }),
+  body: z.object({
+    title,
+    artist: artist.optional(),
+    genre,
+    tags,
+  }),
 });
 
-type updateSongRequest = z.infer<typeof updateSongSchema>;
 type uploadSongRequest = z.infer<typeof uploadSongSchema>["body"];
+type updateSongParams = z.infer<typeof updateSongSchema>["params"];
+type updateSongBody = z.infer<typeof updateSongSchema>["body"];
+type updateSongRequest = updateSongParams & updateSongBody;
 type songType = z.infer<typeof songSchema>;
 type idType = z.infer<typeof mongoId>;
 type parsedSongsQuery = z.infer<typeof getSongsSchema> &

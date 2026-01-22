@@ -14,6 +14,7 @@ import {
   uploadSongRequest,
 } from "../schemas/song.schema";
 import { MongoServerError } from "mongodb";
+
 import { FilterQuery } from "mongoose";
 
 type skippedT = { title: string; reason: string }[];
@@ -67,6 +68,7 @@ const makeSkipped = (file: Express.Multer.File, reason: string) => ({
 const uploadSongService = async (
   body: uploadSongRequest,
   files: songType,
+  userId: Types.ObjectId,
 ): Promise<uploadSongResponse> => {
   const tasks = files.map(async (file): Promise<uploadResultReturnT> => {
     let uploadResult: UploadApiResponse | UploadApiErrorResponse | undefined;
@@ -85,7 +87,10 @@ const uploadSongService = async (
         publicId: uploadResult.public_id,
         fileUrl: uploadResult.secure_url,
         playbackUrl: uploadResult.playback_url,
-        ...(body.owner && { owner: body.owner }),
+        artist: body.artist,
+        owner: userId,
+        tags: body.tags,
+        genre: body.genre,
       });
       return { type: "uploaded", song };
     } catch (error) {
@@ -300,7 +305,7 @@ const updateSongFields = async ({
   artist,
   tags,
   genre,
-}: updateSongRequest): Promise<SongT> => {
+}: updateSongRequest & { songId: string }): Promise<SongT> => {
   const song = await Song.findOneAndUpdate(
     { _id: songId },
     {

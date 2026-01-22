@@ -6,7 +6,7 @@ import {
 } from "../services/auth.services";
 import avatars from "../config/avatars";
 
-interface User extends Document<Types.ObjectId> {
+export interface UserI extends Document<Types.ObjectId> {
   username: string;
   email: string;
   displayName: string;
@@ -25,7 +25,7 @@ interface User extends Document<Types.ObjectId> {
     refreshToken: string;
   }>;
 }
-const userSchema = new Schema<User>(
+const userSchema = new Schema<UserI>(
   {
     username: {
       type: String,
@@ -90,7 +90,7 @@ const userSchema = new Schema<User>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 userSchema.pre("save", async function (next) {
@@ -120,11 +120,11 @@ userSchema.pre("save", async function (next) {
   next();
 });
 userSchema.methods.isPasswordCorrect = async function (
-  password: string
+  password: string,
 ): Promise<boolean> {
   return await bcrypt.compare(password, this.password);
 };
-userSchema.methods.generateAuthTokens = async function (this: User): Promise<{
+userSchema.methods.generateAuthTokens = async function (this: UserI): Promise<{
   accessToken: string;
   refreshToken: string;
 }> {
@@ -150,5 +150,5 @@ userSchema.set("toJSON", {
   },
 });
 
-const User = model<User>("User", userSchema);
+const User = model<UserI>("User", userSchema);
 export default User;
