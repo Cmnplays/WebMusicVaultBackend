@@ -11,7 +11,7 @@ import {
   searchSong,
   getRandomSong,
 } from "../controllers/song.controller";
-import rateLimit from "express-rate-limit";
+const { rateLimit } = require("express-rate-limit");
 
 const uploadLimiter = rateLimit({
   windowMs: 3 * 60 * 60 * 1000,
