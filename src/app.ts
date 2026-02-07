@@ -6,25 +6,30 @@ import songRouter from "./routes/song.route";
 import cookieParser from "cookie-parser";
 import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
 import indexRouter from "./routes/index.route";
-import consoleRouter from "./miscellaneous/console.routes"; // ✅ ADDED
+import consoleRouter from "./miscellaneous/console.routes";
+import { env } from "./config/env";
+const allowedOrigins =
+  env.NODE_ENV === "development"
+    ? [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+        "https://webmusicvault.vercel.app",
+      ]
+    : [env.FRONTEND_URL];
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "https://webmusicvault.vercel.app",
-];
 import cors from "cors";
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (origin && allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by cors policy"));
       }
     },
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
