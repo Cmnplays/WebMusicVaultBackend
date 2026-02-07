@@ -8,6 +8,7 @@ const startServer = async () => {
   try {
     await connectDb();
     app.listen(env.PORT);
+    console.log("Successfully Started Server");
     // checkDbData();
     // checkDuplicateFiles();
     //-->give path of folder in which your songs are present
