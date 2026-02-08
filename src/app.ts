@@ -8,6 +8,8 @@ import invalidRouteMiddleware from "./middlewares/invalidRoute.middleware";
 import indexRouter from "./routes/index.route";
 import consoleRouter from "./miscellaneous/console.routes";
 import { env } from "./config/env";
+import cors from "cors";
+
 const allowedOrigins =
   env.NODE_ENV === "development"
     ? [
@@ -18,7 +20,6 @@ const allowedOrigins =
       ]
     : [env.FRONTEND_URL];
 
-import cors from "cors";
 app.use(
   cors({
     origin: function (origin, callback) {
